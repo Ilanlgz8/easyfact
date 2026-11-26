@@ -12,11 +12,13 @@ import Factures from './pages/Factures.jsx'
 import NouvelleFacture from './pages/NouvelleFacture.jsx'
 import Entreprise from './pages/Entreprise.jsx'
 import DocView from './pages/DocView.jsx'
+import Demo from './pages/Demo.jsx'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/demo" element={<Demo />} />
       <Route path="/connexion" element={<Auth mode="login" />} />
       <Route path="/inscription" element={<Auth mode="register" />} />
       <Route path="/questionnaire" element={<RequireUser><Questionnaire /></RequireUser>} />

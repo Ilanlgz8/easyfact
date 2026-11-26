@@ -68,6 +68,7 @@ export function StoreProvider({ children }) {
 
     login: (email) => update((s) => ({ user: { prenom: s.user?.prenom || 'Lucas', email } })),
     register: ({ prenom, email }) => update(() => ({ user: { prenom, email }, onboarded: false })),
+    enterDemo: () => update(() => ({ user: { prenom: 'Compte test', email: 'test@demo.example' }, onboarded: true })),
     logout: () => update(() => ({ user: null })),
     saveEntreprise: (data) => update((s) => ({ entreprise: { ...s.entreprise, ...data }, onboarded: true })),
 

@@ -13,6 +13,7 @@ export default function Landing() {
             <nav>
               <a href="#comment">Comment ça marche</a>
               <a href="#metiers">Pour quel métier ?</a>
+              <Link to="/demo" className="btn btn-ghost-light btn-sm">Accès démo</Link>
               <Link to="/connexion" className="btn btn-ghost-light btn-sm">Se connecter</Link>
             </nav>
           </div>
