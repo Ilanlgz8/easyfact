@@ -21,7 +21,11 @@ async function unAppel(texte, catalogue, cle, fetchFn) {
     }),
     signal: AbortSignal.timeout(20000),
   })
-  if (!rep.ok) return { ok: false, erreur: `HTTP ${rep.status}`, usage: null }
+  if (!rep.ok) {
+    // Message d'OVH (sans la clé), utile au diagnostic ; la fonction Vercel ne le journalise pas.
+    const detail = await rep.text?.().then((t) => t.slice(0, 300)).catch(() => '')
+    return { ok: false, erreur: `HTTP ${rep.status}`, detail, usage: null }
+  }
   const json = await rep.json()
   const usage = json.usage || null
   const v = validerReponse(json.choices?.[0]?.message?.content, catalogue)
@@ -43,7 +47,7 @@ export async function extraireTravaux(texte, catalogue, { cle, fetchFn = fetch }
     if (dernier.usage) usages.push(dernier.usage)
     if (dernier.ok) return { ...dernier, tentatives: i, usages }
     // Clé refusée : réessayer ne servirait à rien.
-    if (dernier.erreur === 'HTTP 401' || dernier.erreur === 'HTTP 403') return { ok: false, erreur: dernier.erreur, tentatives: i, usages }
+    if (dernier.erreur === 'HTTP 401' || dernier.erreur === 'HTTP 403') return { ok: false, erreur: dernier.erreur, detail: dernier.detail, tentatives: i, usages }
   }
   return { ok: false, erreur: dernier.erreur, tentatives: 2, usages }
 }

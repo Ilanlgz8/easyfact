@@ -6,7 +6,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test tests/calcul.test.js tests/extraction.test.js",
-    "test:ia": "node scripts/cas-reels.mjs"
+    "test:ia": "node --env-file-if-exists=.env scripts/cas-reels.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
