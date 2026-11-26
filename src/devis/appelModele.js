@@ -42,6 +42,8 @@ export async function extraireTravaux(texte, catalogue, { cle, fetchFn = fetch }
     }
     if (dernier.usage) usages.push(dernier.usage)
     if (dernier.ok) return { ...dernier, tentatives: i, usages }
+    // Clé refusée : réessayer ne servirait à rien.
+    if (dernier.erreur === 'HTTP 401' || dernier.erreur === 'HTTP 403') return { ok: false, erreur: dernier.erreur, tentatives: i, usages }
   }
   return { ok: false, erreur: dernier.erreur, tentatives: 2, usages }
 }

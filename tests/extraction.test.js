@@ -57,7 +57,7 @@ test('deux réponses invalides : arrêt après 1 réessai (saisie manuelle)', as
 })
 test('erreur HTTP 401 : échec propre', async () => {
   const r = await extraireTravaux('fuite', catalogue, { cle: 'x', fetchFn: async () => ({ ok: false, status: 401 }) })
-  assert.deepEqual([r.ok, r.erreur], [false, 'HTTP 401'])
+  assert.deepEqual([r.ok, r.erreur, r.tentatives], [false, 'HTTP 401', 1])
 })
 test('réseau coupé : échec propre', async () => {
   const r = await extraireTravaux('fuite', catalogue, { cle: 'x', fetchFn: async () => { throw new TypeError('fetch failed') } })
