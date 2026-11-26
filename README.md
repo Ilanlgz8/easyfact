@@ -26,7 +26,7 @@ Le dossier `dist/` peut être déposé tel quel sur n'importe quel hébergeur de
 1. Accueil → « Créer mon premier devis » → Inscription (n'importe quel e-mail, mot de passe de 8 caractères).
 2. Questionnaire en 3 parties (maquette de Nawel) → espace connecté.
 3. « Nouveau devis » : client → décrivez les travaux (ex. `remplacement chauffe-eau 200 L, 2 h`) → l'IA prépare les lignes → vérification → envoi.
-4. Accueil : « Créer la facture » sur le devis signé de SCI Les Pins → acompte de 30 % déduit.
+4. Accueil : « Créer la facture » sur le devis signé de SCI Exemple → acompte de 30 % déduit.
 
 « Réinitialiser la démo » (en bas du menu) remet les données d'exemple.
 Connexion directe : onglet Connexion, n'importe quel e-mail et mot de passe.

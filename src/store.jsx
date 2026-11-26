@@ -3,7 +3,7 @@ import { seed } from './data.js'
 import { round2, calculerTotaux } from './devis/calcul.js'
 export { round2 }
 
-const KEY = 'easyfact-demo-v2' // v2 : devis et factures avec leurs lignes
+const KEY = 'easyfact-demo-v3' // v3 : données 100 % fictives (adresses, e-mails .example, téléphone de la plage fiction ARCEP)
 const Ctx = createContext(null)
 
 function load() {

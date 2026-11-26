@@ -18,7 +18,7 @@ const Q2 = [
   { k: 'nom', label: 'Nom de l’entreprise', ph: 'Nom de votre entreprise' },
   { k: 'siret', label: 'SIRET', ph: '14 chiffres' },
   { k: 'adresse', label: 'Adresse', ph: 'N°, rue, code postal, ville' },
-  { k: 'telephone', label: 'Téléphone', ph: '06 00 00 00 00' },
+  { k: 'telephone', label: 'Téléphone', ph: '06 39 98 00 00' },
   { k: 'tauxHoraire', label: 'Taux horaire HT (€)', ph: 'Votre taux horaire', num: true },
   { k: 'deplacement', label: 'Frais de déplacement HT (€)', ph: '0 si vous n’en facturez pas', num: true },
   { k: 'assureur', label: 'Assureur décennale', ph: 'Nom de l’assureur' },

@@ -65,7 +65,7 @@ export default function Auth({ mode }) {
           )}
           <div className="field">
             <label htmlFor="email">Adresse e-mail</label>
-            <input id="email" type="email" className="input" placeholder="vous@exemple.fr" value={f.email} onChange={set('email')} autoComplete="email" />
+            <input id="email" type="email" className="input" placeholder="vous@domaine.example" value={f.email} onChange={set('email')} autoComplete="email" />
           </div>
           <div className="field">
             <label htmlFor="pw">Mot de passe</label>
