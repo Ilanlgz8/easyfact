@@ -36,7 +36,7 @@ export default function Landing() {
               <div className="l"><span>Déplacement</span><strong>40,00 €</strong></div>
               <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: 0 }} />
               <div className="l" style={{ fontSize: 19 }}><strong>Total</strong><strong>740,00 €</strong></div>
-              <Link to="/inscription" className="btn btn-dark btn-block">Envoyer au client</Link>
+              <Link to="/inscription" className="btn btn-dark btn-block">Envoyer au client (démo)</Link>
             </div>
           </div>
         </div>

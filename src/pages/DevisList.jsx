@@ -9,7 +9,7 @@ export default function DevisList() {
   const n = (st) => devis.filter((d) => d.statut === st).length
 
   const action = (d) => {
-    if (d.statut === 'pret') return <button className="btn btn-outline btn-sm" onClick={() => { sendDevis(d.id); notify(<>Devis n° {d.numero} envoyé à <strong>{client(d.clientId).nom}</strong> (démo).</>) }}>Envoyer</button>
+    if (d.statut === 'pret') return <button className="btn btn-outline btn-sm" onClick={() => { sendDevis(d.id); notify(<>Devis n° {d.numero} envoyé à <strong>{client(d.clientId).nom}</strong> (démo, rien n’est parti).</>) }}>Envoyer (démo)</button>
     if (d.statut === 'signe') return <button className="btn btn-outline btn-sm" onClick={() => navigate('/app/factures/nouvelle?devis=' + d.id)}>Créer la facture</button>
     if (d.statut === 'attente') return <button className="btn btn-outline btn-sm" onClick={() => notify(<>Relance préparée pour <strong>{client(d.clientId).nom}</strong>. Rien ne part sans votre accord.</>)}>Relancer</button>
     return null

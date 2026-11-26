@@ -23,13 +23,14 @@ export default function LinesEditor({ doc, setDoc, acomptePct = 0 }) {
           </div>
           <label className="price">
             Prix HT
-            <input inputMode="decimal" value={String(l.prix).replace('.', ',')}
+            <input inputMode="decimal" value={l.prix === null ? '' : String(l.prix).replace('.', ',')} placeholder={l.prix === null ? 'À saisir' : undefined}
               onChange={(e) => {
                 const v = e.target.value.replace(',', '.')
-                if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) setLine(i, { prix: v === '' ? 0 : v.endsWith('.') ? v : Number(v) })
+                if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) setLine(i, { prix: v === '' ? (l.horsCatalogue ? null : 0) : v.endsWith('.') ? v : Number(v) })
               }} />
           </label>
-          <span className="line-total">{euros(l.qte * Number(l.prix))}</span>
+          <span className="line-total">{l.prix === null ? 'À chiffrer' : euros(l.qte * Number(l.prix))}</span>
+          {l.horsCatalogue && <p className="muted small" style={{ flexBasis: '100%', color: '#B45309' }}>Hors catalogue : prestation non trouvée dans vos tarifs. Saisissez votre prix ou supprimez la ligne.</p>}
         </div>
       ))}
 
@@ -43,17 +44,19 @@ export default function LinesEditor({ doc, setDoc, acomptePct = 0 }) {
         <div>
           <label htmlFor="tva" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             TVA
-            <select id="tva" value={doc.tva} onChange={(e) => setDoc({ ...doc, tva: Number(e.target.value) })}
-              style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '4px 8px', background: 'var(--white)' }}>
+            <select id="tva" value={doc.tva ?? ''} onChange={(e) => setDoc({ ...doc, tva: e.target.value === '' ? null : Number(e.target.value) })}
+              style={{ border: '1.5px solid ' + (doc.tva == null ? '#B45309' : 'var(--border)'), borderRadius: 8, padding: '4px 8px', background: 'var(--white)' }}>
+              {doc.tva == null && <option value="" disabled>À choisir</option>}
               <option value={20}>20 %</option>
               <option value={10}>10 %</option>
               <option value={5.5}>5,5 %</option>
               <option value={0}>0 % (franchise)</option>
             </select>
           </label>
-          <strong>{euros(t.tva)}</strong>
+          <strong>{t.tva === null ? '—' : euros(t.tva)}</strong>
         </div>
-        <div className="big"><span>Total TTC</span><strong>{euros(t.ttc)}</strong></div>
+        <div className="big"><span>Total TTC</span><strong>{t.ttc === null ? '—' : euros(t.ttc)}</strong></div>
+        {doc.tva == null && <p className="small" style={{ color: '#B45309' }}>Choisissez vous-même le taux de TVA applicable à ce chantier.</p>}
         {acomptePct > 0 && (
           <>
             <div><span>Acompte déjà versé ({acomptePct} %)</span><strong>− {euros(acompte)}</strong></div>

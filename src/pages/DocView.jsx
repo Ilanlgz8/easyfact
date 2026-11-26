@@ -2,6 +2,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Badge } from '../components/ui.jsx'
 import { useStore, euros, totaux, round2, dateFr } from '../store.jsx'
 import { statutDevis, statutFacture } from '../data.js'
+import { ligneChiffree } from '../devis/calcul.js'
 
 // Page d'un devis ou d'une facture, mise en page comme le document envoyé au client
 export default function DocView({ kind }) {
@@ -27,7 +28,7 @@ export default function DocView({ kind }) {
 
   const actions = []
   if (isDevis) {
-    if (doc.statut === 'pret') actions.push(<button key="send" className="btn btn-dark btn-sm" onClick={() => { store.sendDevis(doc.id); notify(<>{titre} envoyé à <strong>{c.nom}</strong> (démo).</>) }}>Envoyer</button>)
+    if (doc.statut === 'pret') actions.push(<button key="send" className="btn btn-dark btn-sm" onClick={() => { store.sendDevis(doc.id); notify(<>{titre} envoyé à <strong>{c.nom}</strong> (démo, rien n’est parti).</>) }}>Envoyer (démo)</button>)
     if (doc.statut === 'attente') {
       actions.push(<button key="rel" className="btn btn-outline btn-sm" onClick={relancer}>Relancer</button>)
       actions.push(<button key="sign" className="btn btn-dark btn-sm" onClick={() => { store.signDevis(doc.id); notify(<>{titre} marqué <strong>signé</strong>.</>) }}>Marquer comme signé</button>)
@@ -38,7 +39,9 @@ export default function DocView({ kind }) {
     actions.push(<button key="rel" className="btn btn-outline btn-sm" onClick={relancer}>Relancer</button>)
     actions.push(<button key="paid" className="btn btn-dark btn-sm" onClick={() => { store.markPaid(doc.id); notify(<>{titre} marquée <strong>payée</strong>.</>) }}>Marquer payée</button>)
   }
-  actions.push(<button key="pdf" className="btn btn-outline btn-sm" onClick={imprimer}>Télécharger en PDF</button>)
+  // Pas de PDF tant que le document n'est pas complet (prix et TVA choisis et validés par l'artisan).
+  const pdfPossible = t.ttc !== null && (doc.lignes || []).every((l) => ligneChiffree(l))
+  actions.push(<button key="pdf" className="btn btn-outline btn-sm" onClick={imprimer} disabled={!pdfPossible} title={pdfPossible ? undefined : 'Complétez et validez le devis avant le PDF'}>Télécharger en PDF</button>)
 
   return (
     <>
@@ -54,6 +57,7 @@ export default function DocView({ kind }) {
       </div>
 
       <article className="paper">
+        <p className="demo-banner">DÉMONSTRATION - NON CONTRACTUEL</p>
         <header className="paper-head">
           <div>
             <strong className="paper-company">{entreprise.nom}</strong>

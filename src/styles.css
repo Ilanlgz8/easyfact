@@ -247,3 +247,7 @@ a.row-main:hover strong { text-decoration: underline; }
   .paper { box-shadow: none; border-radius: 0; max-width: none; padding: 0; border-top: none; }
   .paper-client { background: none; border: 1px solid #ccc; }
 }
+
+/* Mention obligatoire sur chaque document de démonstration (écran et PDF) */
+.demo-banner { margin: 0 0 16px; padding: 6px 10px; border: 2px solid #B91C1C; color: #B91C1C; font-weight: 700; text-align: center; letter-spacing: .04em; }
+@media print { .demo-banner { display: block !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }

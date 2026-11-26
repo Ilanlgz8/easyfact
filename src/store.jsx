@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { seed } from './data.js'
+import { round2, calculerTotaux } from './devis/calcul.js'
+export { round2 }
 
 const KEY = 'easyfact-demo-v2' // v2 : devis et factures avec leurs lignes
 const Ctx = createContext(null)
@@ -13,13 +15,10 @@ function load() {
 }
 
 // ---- Calculs ----
-export const round2 = (n) => Math.round(n * 100) / 100
-
+// Les calculs sont dans src/devis/calcul.js (testés sans navigateur).
 export function totaux(doc) {
   if (!doc.lignes) return { ht: null, tva: null, ttc: doc.total }
-  const ht = round2(doc.lignes.reduce((s, l) => s + l.qte * l.prix, 0))
-  const tva = round2(ht * (doc.tva || 0) / 100)
-  return { ht, tva, ttc: round2(ht + tva) }
+  return calculerTotaux(doc.lignes, doc.tva)
 }
 
 export const montant = (doc) => totaux(doc).ttc

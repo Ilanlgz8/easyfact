@@ -25,7 +25,7 @@ export default function Home() {
       return <button className="btn btn-outline btn-sm" onClick={() => notify(<>Relance préparée pour <strong>{client(doc.clientId).nom}</strong>. Rien ne part sans votre accord.</>)}>Relancer</button>
     }
     if (doc.statut === 'pret') {
-      return <button className="btn btn-dark btn-sm" onClick={() => { sendDevis(doc.id); notify(<>Devis n° {doc.numero} envoyé à <strong>{client(doc.clientId).nom}</strong> (démo).</>) }}>Envoyer</button>
+      return <button className="btn btn-dark btn-sm" onClick={() => { sendDevis(doc.id); notify(<>Devis n° {doc.numero} envoyé à <strong>{client(doc.clientId).nom}</strong> (démo, rien n’est parti).</>) }}>Envoyer (démo)</button>
     }
     return <button className="btn btn-outline btn-sm" onClick={() => navigate('/app/factures/nouvelle?devis=' + doc.id)}>Créer la facture</button>
   }

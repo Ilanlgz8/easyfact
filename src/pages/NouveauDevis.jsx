@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FlowLayout, Steps } from '../components/ui.jsx'
 import LinesEditor from '../components/LinesEditor.jsx'
 import { useStore } from '../store.jsx'
-import { preparerLignes } from '../ia.js'
+import { extraireLignes } from '../ia.js'
+import { blocagesValidation } from '../devis/calcul.js'
 
 export default function NouveauDevis() {
   const navigate = useNavigate()
@@ -20,31 +21,32 @@ export default function NouveauDevis() {
   const [doc, setDoc] = useState(edited ? { clientId: edited.clientId, tva: edited.tva, objet: edited.objet, lignes: edited.lignes.map((l) => ({ ...l })) } : null)
   const [ok, setOk] = useState(false)
 
-  const tvaParDefaut = (id) => {
-    if (String(entreprise.tva).startsWith('Non')) return 0
-    return client(id).type === 'Pro' ? 20 : 10
+  // IA : lignes proposées par le modèle, prix repris du catalogue. TVA jamais préremplie.
+  const [infoIA, setInfoIA] = useState(null)
+  const toStep2 = async () => {
+    setLoading(true)
+    const objet = texte.trim() ? texte.trim().charAt(0).toUpperCase() + texte.trim().slice(1) : 'Travaux de plomberie'
+    const r = await extraireLignes(texte, prestations)
+    const lignes = r.mode === 'ia' ? r.lignes : [{ label: '', qte: 1, prix: null, custom: true }]
+    setInfoIA(r)
+    setDoc({ clientId, objet, tva: null, lignes })
+    setOk(false)
+    setLoading(false)
+    setStep(2)
   }
 
-  const toStep2 = () => {
-    setLoading(true)
-    // IA simulée : petit délai pour montrer qu'elle « prépare » les lignes
-    window.setTimeout(() => {
-      const objet = texte.trim() ? texte.trim().charAt(0).toUpperCase() + texte.trim().slice(1) : 'Travaux de plomberie'
-      setDoc({ clientId, objet, tva: tvaParDefaut(clientId), lignes: preparerLignes(texte || 'chauffe-eau', prestations, entreprise) })
-      setLoading(false)
-      setStep(2)
-    }, 900)
-  }
+  const blocages = doc ? blocagesValidation(doc) : []
 
   const valider = () => {
-    const lignes = doc.lignes.filter((l) => l.label.trim() || l.prix)
+    if (blocages.length) return
+    const lignes = doc.lignes.filter((l) => l.label.trim() || l.prix).map(({ horsCatalogue, ...l }) => ({ ...l, prix: Number(l.prix) }))
     if (edited) {
       updateDevis(edited.id, { ...doc, lignes, statut: 'attente' })
-      notify(<>Devis n° {edited.numero} modifié et renvoyé à <strong>{client(clientId).nom}</strong> (démo).</>)
+      notify(<>Devis n° {edited.numero} modifié et validé (démo : rien n’est envoyé à <strong>{client(clientId).nom}</strong>).</>)
       return navigate('/app/devis/' + edited.id)
     }
     const numero = addDevis({ ...doc, lignes })
-    notify(<>Devis n° {numero} envoyé à <strong>{client(clientId).nom}</strong> (démo : aucun e-mail réel).</>)
+    notify(<>Devis n° {numero} validé (démo : aucun e-mail envoyé à <strong>{client(clientId).nom}</strong>).</>)
     navigate('/app/devis')
   }
 
@@ -110,13 +112,17 @@ export default function NouveauDevis() {
           <>
             <section className="card">
               <h2 style={{ fontSize: 22 }}>Vérifiez le devis</h2>
-              <p className="muted" style={{ marginTop: 4 }}>{client(clientId).nom} · lignes et prix d’exemple, modifiables</p>
+              <p className="muted" style={{ marginTop: 4 }}>{client(clientId).nom} · prix repris de votre catalogue, modifiables</p>
+              {infoIA?.mode === 'ia' && <p className="small muted" style={{ marginTop: 6 }}>Lignes proposées par l’IA à partir de votre description. Vérifiez-les.</p>}
+              {infoIA?.mode === 'manuel' && <p className="small" style={{ marginTop: 6, color: '#B45309' }}>{infoIA.raison} Saisissez les lignes vous-même.</p>}
+              {infoIA?.remarques?.length > 0 && <ul className="small muted" style={{ marginTop: 6 }}>{infoIA.remarques.map((r, i) => <li key={i}>{r}</li>)}</ul>}
               <LinesEditor doc={doc} setDoc={setDoc} />
             </section>
             <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <label className="check"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />J’ai vérifié et je valide ce devis</label>
-              <p className="muted">Rien ne part sans votre validation. L’e-mail sera envoyé à : [e-mail du client]</p>
-              <button className="btn btn-dark btn-block" disabled={!ok || doc.lignes.length === 0} onClick={valider} style={{ minHeight: 56 }}>Valider et envoyer par e-mail</button>
+              <label className="check"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />J’ai vérifié les lignes, les prix et le taux de TVA, et je valide ce devis</label>
+              {blocages.length > 0 && <ul className="small" style={{ color: '#B45309' }}>{blocages.map((b) => <li key={b}>{b}</li>)}</ul>}
+              <p className="muted">Démonstration : aucun e-mail n’est envoyé au client.</p>
+              <button className="btn btn-dark btn-block" disabled={!ok || blocages.length > 0} onClick={valider} style={{ minHeight: 56 }}>Valider le devis (démo, aucun envoi)</button>
             </section>
             <div className="flow-actions"><button className="btn btn-outline" onClick={() => (edited ? navigate('/app/devis/' + edited.id) : (setStep(1), setOk(false)))}>Retour</button></div>
           </>
