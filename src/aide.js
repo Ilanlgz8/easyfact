@@ -30,7 +30,7 @@ export const SECTIONS_AIDE = [
     'Ceci est une démonstration : comptes, clients, devis et montants sont fictifs. N’y saisissez pas de vraies données.',
     'Les données restent dans ce navigateur. « Réinitialiser la démo » (menu, en bas) remet les données d’exemple.',
     'Si l’assistant IA est activé, la description des travaux est envoyée au service OVHcloud AI Endpoints, après remplacement des noms de vos clients, e-mails, téléphones et adresses repérés. Ce filtrage n’est pas une anonymisation complète. Le nom du client choisi et vos prix ne sont pas envoyés.',
-    'La dictée vocale (si activée) utilise la reconnaissance vocale du navigateur : sur Chrome, l’audio est traité par Google.',
+    'La dictée vocale (si activée) utilise la reconnaissance vocale du navigateur : l’audio est traité par Google (Chrome) ou Microsoft (Edge).',
   ] },
   { id: 'support', titre: 'Aide et contact', texte: [
     'Démonstration : le moyen de contact du support n’est pas encore défini. Adressez-vous à l’équipe EasyFact qui vous présente le site.',

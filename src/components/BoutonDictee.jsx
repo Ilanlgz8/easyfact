@@ -30,12 +30,17 @@ export default function BoutonDictee({ valeur, onChange }) {
     r.onaudiostart = () => setPhase('Micro actif : parlez.')
     r.onspeechstart = () => {
       setPhase('Voix détectée…')
-      // Voix entendue mais aucun texte du service Google au bout de 10 s : on abandonne avec un message clair.
+      // Voix entendue mais aucun texte du service vocal au bout de 10 s : on abandonne avec un message clair.
+      // (Chrome : service Google ; Edge : service Microsoft.) Certains navigateurs ne déclenchent pas
+      // « onend » après abort() : on remet donc le bouton à l'état normal nous-mêmes.
       delai = setTimeout(() => {
         if (recu) return
         enErreur = true
-        setErreur('Le service de dictée de Google ne répond pas (VPN, antivirus ou pare-feu ?). Utilisez Windows + H dans le champ.')
-        r.abort()
+        const service = /Edg\//.test(navigator.userAgent) ? 'de Microsoft (Edge)' : 'du navigateur'
+        setErreur(`Le service de dictée ${service} ne répond pas. Essayez dans Chrome, ou utilisez la dictée de Windows : cliquez dans le champ puis appuyez sur Windows + H.`)
+        try { r.abort() } catch { /* déjà arrêté */ }
+        setActif(false)
+        setPhase('')
       }, 10000)
     }
     r.onresult = (e) => {
@@ -73,7 +78,7 @@ export default function BoutonDictee({ valeur, onChange }) {
       </button>
       {actif && <p className="small muted" role="status">{phase || 'Parlez, le texte s’écrit au fur et à mesure…'}</p>}
       {erreur && <p className="small" role="alert" style={{ color: '#B45309' }}>{erreur}</p>}
-      <p className="small muted">La dictée utilise la reconnaissance vocale de votre navigateur (sur Chrome, l’audio est traité par Google).</p>
+      <p className="small muted">La dictée utilise la reconnaissance vocale de votre navigateur : l’audio est traité par Google (Chrome) ou Microsoft (Edge).</p>
     </div>
   )
 }
