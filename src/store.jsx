@@ -1,25 +1,37 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { seed } from './data.js'
+import { round2, calculerTotaux } from './devis/calcul.js'
+import { creerDevis, nouvelleVersion } from './devis/cycle.js'
+import { moisParis } from './marche/indices.js'
+import { catalogueEntreprise, exemplesEntreprise } from './metiers/catalogues.js'
+export { round2 }
 
-const KEY = 'easyfact-demo-v2' // v2 : devis et factures avec leurs lignes
+const KEY = 'easyfact-demo-v3' // v3 : données 100 % fictives (adresses, e-mails .example, téléphone de la plage fiction ARCEP)
 const Ctx = createContext(null)
+
+// Ajouts rétro-compatibles aux données déjà enregistrées : date des prix d'exemple (prix du marché).
+function completer(etat) {
+  const ref = new Map(seed.prestations.map((p) => [p.id, p]))
+  const prestations = (etat.prestations || []).map((p) => {
+    const s = ref.get(p.id)
+    return !p.prixDepuis && s && Number(s.prix) === Number(p.prix) ? { ...p, prixDepuis: s.prixDepuis } : p
+  })
+  return { ...etat, prestations }
+}
 
 function load() {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) return completer(JSON.parse(raw))
   } catch (e) { /* stockage indisponible : on repart des données d'exemple */ }
   return structuredClone(seed)
 }
 
 // ---- Calculs ----
-export const round2 = (n) => Math.round(n * 100) / 100
-
+// Les calculs sont dans src/devis/calcul.js (testés sans navigateur).
 export function totaux(doc) {
   if (!doc.lignes) return { ht: null, tva: null, ttc: doc.total }
-  const ht = round2(doc.lignes.reduce((s, l) => s + l.qte * l.prix, 0))
-  const tva = round2(ht * (doc.tva || 0) / 100)
-  return { ht, tva, ttc: round2(ht + tva) }
+  return calculerTotaux(doc.lignes, doc.tva)
 }
 
 export const montant = (doc) => totaux(doc).ttc
@@ -46,12 +58,26 @@ const nextNumero = (list) => {
 }
 
 export function StoreProvider({ children }) {
-  const [state, setState] = useState(load)
+  const [state, setStateBrut] = useState(load)
   const [toast, setToast] = useState(null)
+  // Copie synchrone de l'état : deux actions rapprochées (double clic) voient le même état à jour.
+  const ref = useRef(state)
+  const setState = useCallback((next) => {
+    const v = typeof next === 'function' ? next(ref.current) : next
+    ref.current = v
+    setStateBrut(v)
+    try { localStorage.setItem(KEY, JSON.stringify(v)) } catch (e) { /* stockage indisponible */ }
+  }, [])
 
+  // Autre onglet : on reprend son état pour ne pas l'écraser (le verrou de version s'appuie dessus).
   useEffect(() => {
-    try { localStorage.setItem(KEY, JSON.stringify(state)) } catch (e) { /* ignore */ }
-  }, [state])
+    const surStockage = (e) => {
+      if (e.key !== KEY || !e.newValue) return
+      try { const v = JSON.parse(e.newValue); ref.current = v; setStateBrut(v) } catch (err) { /* ignore */ }
+    }
+    window.addEventListener('storage', surStockage)
+    return () => window.removeEventListener('storage', surStockage)
+  }, [])
 
   const notify = useCallback((msg) => {
     setToast(msg)
@@ -60,6 +86,7 @@ export function StoreProvider({ children }) {
   }, [])
 
   const update = (fn) => setState((s) => ({ ...s, ...fn(s) }))
+  const fiche = (s, clientId) => s.clients.find((c) => c.id === clientId) || null
 
   const api = {
     ...state,
@@ -69,24 +96,43 @@ export function StoreProvider({ children }) {
 
     login: (email) => update((s) => ({ user: { prenom: s.user?.prenom || 'Lucas', email } })),
     register: ({ prenom, email }) => update(() => ({ user: { prenom, email }, onboarded: false })),
+    enterDemo: () => update(() => ({ user: { prenom: 'Compte test', email: 'test@demo.example' }, onboarded: true })),
     logout: () => update(() => ({ user: null })),
     saveEntreprise: (data) => update((s) => ({ entreprise: { ...s.entreprise, ...data }, onboarded: true })),
+    // Fin du questionnaire : catalogue et exemples du métier. Seulement au premier passage (rien n'est écrasé
+    // une fois l'artisan installé). `elementsIA` : noms proposés par l'IA pour un métier « Autre » (sans prix).
+    demarrerActivite: (data, elementsIA = []) => update((s) => {
+      const entreprise = { ...s.entreprise, ...data }
+      if (s.onboarded) return { entreprise }
+      const prestations = catalogueEntreprise(entreprise, elementsIA)
+      return { entreprise, prestations, ...exemplesEntreprise(entreprise, prestations), onboarded: true }
+    }),
 
     addClient: (nom, type) => {
       const id = 'c' + Date.now()
       update((s) => ({ clients: [...s.clients, { id, nom, type }] }))
       return id
     },
-    addPrestation: (p) => update((s) => ({ prestations: [...s.prestations, { ...p, id: 'p' + Date.now() }] })),
-    updatePrestation: (id, p) => update((s) => ({ prestations: s.prestations.map((x) => (x.id === id ? { ...x, ...p } : x)) })),
+    addPrestation: (p) => update((s) => ({ prestations: [...s.prestations, { ...p, id: 'p' + Date.now(), prixDepuis: moisParis() }] })),
+    // Le mois du prix est retenu pour le comparer au marché (index INSEE) ; il change quand le prix change.
+    updatePrestation: (id, p) => update((s) => ({ prestations: s.prestations.map((x) => (x.id !== id ? x
+      : { ...x, ...p, exemple: false, prixDepuis: Number(p.prix) === Number(x.prix) && x.prixDepuis ? x.prixDepuis : moisParis() })) })),
 
-    updateDevis: (id, patch) => update((s) => ({ devis: s.devis.map((d) => (d.id === id ? { ...d, ...patch } : d)) })),
     signDevis: (id) => update((s) => ({ devis: s.devis.map((d) => (d.id === id ? { ...d, statut: 'signe' } : d)) })),
     sendDevis: (id) => update((s) => ({ devis: s.devis.map((d) => (d.id === id ? { ...d, statut: 'attente' } : d)) })),
-    addDevis: (doc) => {
-      const numero = nextNumero(state.devis)
-      update((s) => ({ devis: [{ ...doc, id: 'd' + Date.now(), numero, date: today(), statut: 'attente' }, ...s.devis] }))
-      return numero
+    // Validation d'un devis (idempotente grâce à la clé) : renvoie { devis, dejaFait } ou { erreur }.
+    validerDevis: (doc, cle) => {
+      const s = ref.current
+      const r = creerDevis(s, doc, { id: 'd' + Date.now(), date: today(), cle, entreprise: s.entreprise, client: fiche(s, doc.clientId) })
+      if (!r.erreur && !r.dejaFait) setState(r.etat)
+      return r
+    },
+    // Nouvelle version d'un devis validé : l'ancien reste consultable (statut « remplacé »).
+    nouvelleVersionDevis: (ancienId, doc, cle) => {
+      const s = ref.current
+      const r = nouvelleVersion(s, ancienId, doc, { id: 'd' + Date.now(), date: today(), cle, entreprise: s.entreprise, client: fiche(s, doc.clientId) })
+      if (!r.erreur && !r.dejaFait) setState(r.etat)
+      return r
     },
     addFacture: (doc, fromDevisId) => update((s) => ({
       factures: [{ ...doc, id: 'f' + Date.now(), numero: nextNumero(s.factures), date: today(), statut: 'attente' }, ...s.factures],
@@ -94,7 +140,15 @@ export function StoreProvider({ children }) {
     })),
     markPaid: (id) => update((s) => ({ factures: s.factures.map((f) => (f.id === id ? { ...f, statut: 'payee' } : f)) })),
 
-    resetDemo: () => setState({ ...structuredClone(seed), user: state.user, onboarded: true }),
+    // Remise à zéro : données d'exemple du métier de l'entreprise (celles du plombier fictif pour le compte de démo).
+    resetDemo: () => {
+      const s = ref.current
+      const base = { ...structuredClone(seed), user: s.user, onboarded: true }
+      if (s.entreprise?.nom === seed.entreprise.nom) return setState(base)
+      const ia = (s.prestations || []).filter((p) => p.proposeParIA).map(({ nom, detail, type, indice }) => ({ nom, detail, type, indice }))
+      const prestations = catalogueEntreprise(s.entreprise, ia)
+      setState({ ...base, entreprise: s.entreprise, prestations, ...exemplesEntreprise(s.entreprise, prestations) })
+    },
   }
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>

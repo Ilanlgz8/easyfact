@@ -1,13 +1,20 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FlowLayout, Steps } from '../components/ui.jsx'
 import LinesEditor from '../components/LinesEditor.jsx'
+import BoutonDictee from '../components/BoutonDictee.jsx'
 import { useStore } from '../store.jsx'
-import { preparerLignes } from '../ia.js'
+import { extraireLignes } from '../ia.js'
+import { useMarche } from '../marche/useMarche.js'
+import { blocagesValidation, ligneChiffree } from '../devis/calcul.js'
 
 export default function NouveauDevis() {
   const navigate = useNavigate()
-  const { clients, devis, prestations, entreprise, client, addClient, addDevis, updateDevis, notify } = useStore()
+  const { clients, devis, prestations, client, addClient, validerDevis, nouvelleVersionDevis, notify, entreprise, saveEntreprise } = useStore()
+  const marche = useMarche(entreprise, saveEntreprise, prestations)
+  // Exemple de description adapté au métier : première prestation du catalogue (hors main-d'œuvre et déplacement).
+  const modele = prestations.find((p) => p.type === 'prestation' && !/^(Main-d|Déplacement)/.test(p.nom))
+  const exemple = modele ? `Ex. : ${modele.nom.toLowerCase()}, 2 h` : 'Ex. : décrivez les travaux, les quantités, la durée'
   const [params] = useSearchParams()
   // Mode « Modifier » : on ouvre directement l'étape de vérification avec les lignes du devis
   const edited = devis.find((d) => d.id === params.get('edit'))
@@ -20,32 +27,47 @@ export default function NouveauDevis() {
   const [doc, setDoc] = useState(edited ? { clientId: edited.clientId, tva: edited.tva, objet: edited.objet, lignes: edited.lignes.map((l) => ({ ...l })) } : null)
   const [ok, setOk] = useState(false)
 
-  const tvaParDefaut = (id) => {
-    if (String(entreprise.tva).startsWith('Non')) return 0
-    return client(id).type === 'Pro' ? 20 : 10
+  // IA : lignes proposées par le modèle, prix repris du catalogue. TVA jamais préremplie.
+  const [infoIA, setInfoIA] = useState(null)
+  const enCours = useRef(false)
+  const toStep2 = async () => {
+    // Double clic sur « Continuer » : un seul appel à l'IA.
+    if (enCours.current) return
+    enCours.current = true
+    setLoading(true)
+    const objet = texte.trim() ? texte.trim().charAt(0).toUpperCase() + texte.trim().slice(1) : 'Travaux'
+    const r = await extraireLignes(texte, prestations, clients.map((c) => c.nom), entreprise.metiers || [])
+    enCours.current = false
+    const lignes = r.mode === 'ia' ? r.lignes : [{ label: '', qte: 1, prix: null, custom: true }]
+    setInfoIA(r)
+    setDoc({ clientId, objet, tva: null, lignes })
+    setOk(false)
+    setLoading(false)
+    setStep(2)
   }
 
-  const toStep2 = () => {
-    setLoading(true)
-    // IA simulée : petit délai pour montrer qu'elle « prépare » les lignes
-    window.setTimeout(() => {
-      const objet = texte.trim() ? texte.trim().charAt(0).toUpperCase() + texte.trim().slice(1) : 'Travaux de plomberie'
-      setDoc({ clientId, objet, tva: tvaParDefaut(clientId), lignes: preparerLignes(texte || 'chauffe-eau', prestations, entreprise) })
-      setLoading(false)
-      setStep(2)
-    }, 900)
-  }
+  const blocages = doc ? blocagesValidation(doc) : []
+
+  // Clé unique de cette validation : un double clic ou un réessai ne crée pas de 2e devis.
+  const cle = useRef(crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random())
+  const [envoi, setEnvoi] = useState(false)
+  const [erreurValidation, setErreurValidation] = useState('')
 
   const valider = () => {
-    const lignes = doc.lignes.filter((l) => l.label.trim() || l.prix)
-    if (edited) {
-      updateDevis(edited.id, { ...doc, lignes, statut: 'attente' })
-      notify(<>Devis n° {edited.numero} modifié et renvoyé à <strong>{client(clientId).nom}</strong> (démo).</>)
-      return navigate('/app/devis/' + edited.id)
+    if (blocages.length || envoi) return
+    setEnvoi(true)
+    setErreurValidation('')
+    const lignes = doc.lignes.filter((l) => l.label.trim() || ligneChiffree(l)).map(({ horsCatalogue, ...l }) => ({ ...l, prix: Number(l.prix), qte: Number(l.qte) }))
+    const r = edited ? nouvelleVersionDevis(edited.id, { ...doc, lignes }, cle.current) : validerDevis({ ...doc, lignes }, cle.current)
+    if (r.erreur) {
+      setEnvoi(false)
+      // Les lignes saisies restent à l'écran.
+      if (r.erreur === 'conflit') return setErreurValidation('Ce devis a déjà été modifié ou facturé (peut-être dans un autre onglet). Vos lignes sont conservées : ouvrez la dernière version du devis pour repartir de celle-ci.')
+      return setErreurValidation('L’enregistrement a échoué. Vos lignes sont conservées : réessayez.')
     }
-    const numero = addDevis({ ...doc, lignes })
-    notify(<>Devis n° {numero} envoyé à <strong>{client(clientId).nom}</strong> (démo : aucun e-mail réel).</>)
-    navigate('/app/devis')
+    const v = r.devis.version > 1 ? ` (version ${r.devis.version})` : ''
+    notify(<>Devis n° {r.devis.numero}{v} validé (démo : rien n’est envoyé à <strong>{client(clientId).nom}</strong>).</>)
+    navigate('/app/devis/' + r.devis.id)
   }
 
   const saveClient = () => {
@@ -56,9 +78,10 @@ export default function NouveauDevis() {
   }
 
   return (
-    <FlowLayout>
+    <FlowLayout confirmer={!edited && (step > 0 || texte.trim() !== "")}>
       <div className="flow">
-        <h1>{edited ? `Modifier le devis n° ${edited.numero}` : 'Nouveau devis'}</h1>
+        <h1>{edited ? `Nouvelle version du devis n° ${edited.numero}` : 'Nouveau devis'}</h1>
+        {edited && <p className="muted">La version actuelle reste consultable. Elle sera marquée « remplacée » quand vous validerez celle-ci.</p>}
         <Steps labels={['Client', 'Travaux', 'Vérification']} current={step} />
 
         {step === 0 && (
@@ -93,7 +116,8 @@ export default function NouveauDevis() {
           <>
             <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <label htmlFor="travaux" style={{ fontWeight: 700, fontSize: 22 }}>Décrivez les travaux en quelques mots</label>
-              <textarea id="travaux" className="input" placeholder="Ex. : remplacement chauffe-eau 200 L, 2 h" value={texte} onChange={(e) => setTexte(e.target.value)} />
+              <textarea id="travaux" className="input" placeholder={exemple} value={texte} onChange={(e) => setTexte(e.target.value)} />
+              <BoutonDictee valeur={texte} onChange={setTexte} />
               <label htmlFor="photos" style={{ fontWeight: 700, fontSize: 22 }}>Ajoutez des photos du chantier</label>
               <div className="dropzone"><input id="photos" type="file" accept="image/*" multiple onChange={(e) => setPhotos([...e.target.files].map((f) => f.name))} /></div>
               {photos.length > 0 && <p className="small muted">{photos.length} photo{photos.length > 1 ? 's' : ''} ajoutée{photos.length > 1 ? 's' : ''}.</p>}
@@ -110,13 +134,26 @@ export default function NouveauDevis() {
           <>
             <section className="card">
               <h2 style={{ fontSize: 22 }}>Vérifiez le devis</h2>
-              <p className="muted" style={{ marginTop: 4 }}>{client(clientId).nom} · lignes et prix d’exemple, modifiables</p>
-              <LinesEditor doc={doc} setDoc={setDoc} />
+              <p className="muted" style={{ marginTop: 4 }}>{client(clientId).nom} · prix repris de votre catalogue, modifiables</p>
+              {infoIA?.mode === 'ia' && <p className="small muted" style={{ marginTop: 6 }}>Lignes proposées par l’IA à partir de votre description. Vérifiez-les.</p>}
+              {infoIA?.mode === 'manuel' && <p className="small" style={{ marginTop: 6, color: '#B45309' }}>{infoIA.raison} Saisissez les lignes vous-même.</p>}
+              {infoIA?.remarques?.length > 0 && <ul className="small muted" style={{ marginTop: 6 }}>{infoIA.remarques.map((r, i) => <li key={i}>{r}</li>)}</ul>}
+              <LinesEditor doc={doc} setDoc={setDoc} catalogue={prestations} marche={marche} />
+              {marche && (
+                <p className="small muted" style={{ marginTop: 10 }}>
+                  Prix du marché (source INSEE) : les matériaux suivent l’indice de prix de production de chaque matériau ;
+                  la main-d’œuvre et les poses suivent l’index du bâtiment {marche.defaut} « {marche.series[marche.defaut]?.libelle || ''} »
+                  {marche.origine === 'ia' ? `, choisi par l’IA pour votre métier « ${marche.metier} »` : marche.origine === 'defaut' ? ' (index général, faute de métier reconnu)' : ''}.
+                  {' '}Ce sont des évolutions officielles, pas des prix exacts : à vous de décider.
+                </p>
+              )}
             </section>
             <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <label className="check"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />J’ai vérifié et je valide ce devis</label>
-              <p className="muted">Rien ne part sans votre validation. L’e-mail sera envoyé à : [e-mail du client]</p>
-              <button className="btn btn-dark btn-block" disabled={!ok || doc.lignes.length === 0} onClick={valider} style={{ minHeight: 56 }}>Valider et envoyer par e-mail</button>
+              <label className="check"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />J’ai vérifié les lignes, les prix et le taux de TVA, et je valide ce devis</label>
+              {blocages.length > 0 && <ul className="small" style={{ color: '#B45309' }}>{blocages.map((b) => <li key={b}>{b}</li>)}</ul>}
+              <p className="muted">Démonstration : aucun e-mail n’est envoyé au client.</p>
+              {erreurValidation && <p className="error" role="alert">{erreurValidation}</p>}
+              <button className="btn btn-dark btn-block" disabled={!ok || blocages.length > 0 || envoi} onClick={valider} style={{ minHeight: 56 }}>{envoi ? 'Enregistrement…' : 'Valider le devis (démo, aucun envoi)'}</button>
             </section>
             <div className="flow-actions"><button className="btn btn-outline" onClick={() => (edited ? navigate('/app/devis/' + edited.id) : (setStep(1), setOk(false)))}>Retour</button></div>
           </>

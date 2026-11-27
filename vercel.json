@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/extraire.js": { "maxDuration": 45 },
+    "api/transcrire.js": { "maxDuration": 45 },
+    "api/marche.js": { "maxDuration": 30 }
+  }
+}

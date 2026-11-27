@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Logo } from '../components/ui.jsx'
 import { useStore } from '../store.jsx'
 
@@ -10,6 +10,7 @@ export default function Auth({ mode }) {
   const [show, setShow] = useState(false)
   const [f, setF] = useState({ prenom: '', email: '', password: '', cgu: false })
   const [error, setError] = useState('')
+  const [oubli, setOubli] = useState(false)
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
 
   const submit = (e) => {
@@ -65,7 +66,7 @@ export default function Auth({ mode }) {
           )}
           <div className="field">
             <label htmlFor="email">Adresse e-mail</label>
-            <input id="email" type="email" className="input" placeholder="vous@exemple.fr" value={f.email} onChange={set('email')} autoComplete="email" />
+            <input id="email" type="email" className="input" placeholder="vous@domaine.example" value={f.email} onChange={set('email')} autoComplete="email" />
           </div>
           <div className="field">
             <label htmlFor="pw">Mot de passe</label>
@@ -76,11 +77,14 @@ export default function Auth({ mode }) {
           </div>
 
           {tab === 'login' ? (
-            <a href="#" className="small" style={{ alignSelf: 'flex-end', fontWeight: 600 }}>Mot de passe oublié ?</a>
+            <>
+              <button type="button" className="small linklike" style={{ alignSelf: 'flex-end', fontWeight: 600 }} aria-expanded={oubli} onClick={() => setOubli(!oubli)}>Mot de passe oublié ?</button>
+              {oubli && <p className="small muted" role="status">Version de démonstration : il n’y a pas de vrai compte, donc rien à réinitialiser. Saisissez n’importe quel mot de passe, ou utilisez l’<Link to="/demo">accès démo</Link>.</p>}
+            </>
           ) : (
             <label className="small" style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
               <input type="checkbox" checked={f.cgu} onChange={set('cgu')} style={{ width: 20, height: 20, accentColor: 'var(--forest)' }} />
-              <span>J’accepte les <a href="#">conditions d’utilisation</a> et la <a href="#">politique de confidentialité</a>.</span>
+              <span>J’accepte les conditions de la démonstration (<Link to="/aide#donnees" target="_blank">données et confidentialité</Link>).</span>
             </label>
           )}
 

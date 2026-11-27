@@ -2,23 +2,30 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Badge } from '../components/ui.jsx'
 import { useStore, euros, totaux, round2, dateFr } from '../store.jsx'
 import { statutDevis, statutFacture } from '../data.js'
+import { ligneChiffree, totalLigne } from '../devis/calcul.js'
+import { derniereVersion } from '../devis/cycle.js'
 
 // Page d'un devis ou d'une facture, mise en page comme le document envoyé au client
 export default function DocView({ kind }) {
   const { id } = useParams()
   const navigate = useNavigate()
   const store = useStore()
-  const { entreprise, client, notify } = store
+  const { notify } = store
   const isDevis = kind === 'devis'
   const doc = (isDevis ? store.devis : store.factures).find((d) => d.id === id)
   if (!doc) return <Navigate to={isDevis ? '/app/devis' : '/app/factures'} replace />
 
-  const c = client(doc.clientId)
+  // Devis validé : on affiche la copie figée au moment de la validation (entreprise, client),
+  // pas les fiches actuelles. Anciens devis d'exemple sans copie : fiches actuelles.
+  const entreprise = doc.fige?.entreprise || store.entreprise
+  const c = doc.fige?.client || store.client(doc.clientId)
+  const remplace = doc.statut === 'remplace'
+  const versionActuelle = remplace ? derniereVersion(store.devis, doc.id) : null
   const t = totaux(doc)
   const acompte = round2(t.ttc * (doc.acompte || 0) / 100)
   const st = (isDevis ? statutDevis : statutFacture)[doc.statut]
   const delaiJours = parseInt(entreprise.delai, 10) || 0
-  const titre = `${isDevis ? 'Devis' : 'Facture'} n° ${doc.numero}`
+  const titre = `${isDevis ? 'Devis' : 'Facture'} n° ${doc.numero}${doc.version > 1 ? ` (version ${doc.version})` : ''}`
 
   const relancer = () => notify(<>Relance préparée pour <strong>{c.nom}</strong>. Rien ne part sans votre accord.</>)
   const imprimer = () => {
@@ -27,18 +34,21 @@ export default function DocView({ kind }) {
 
   const actions = []
   if (isDevis) {
-    if (doc.statut === 'pret') actions.push(<button key="send" className="btn btn-dark btn-sm" onClick={() => { store.sendDevis(doc.id); notify(<>{titre} envoyé à <strong>{c.nom}</strong> (démo).</>) }}>Envoyer</button>)
+    if (doc.statut === 'pret') actions.push(<button key="send" className="btn btn-dark btn-sm" onClick={() => { store.sendDevis(doc.id); notify(<>{titre} envoyé à <strong>{c.nom}</strong> (démo, rien n’est parti).</>) }}>Envoyer (démo)</button>)
     if (doc.statut === 'attente') {
       actions.push(<button key="rel" className="btn btn-outline btn-sm" onClick={relancer}>Relancer</button>)
       actions.push(<button key="sign" className="btn btn-dark btn-sm" onClick={() => { store.signDevis(doc.id); notify(<>{titre} marqué <strong>signé</strong>.</>) }}>Marquer comme signé</button>)
     }
     if (doc.statut === 'signe') actions.push(<button key="fac" className="btn btn-dark btn-sm" onClick={() => navigate('/app/factures/nouvelle?devis=' + doc.id)}>Créer la facture</button>)
-    if (doc.statut !== 'facture') actions.push(<Link key="edit" to={'/app/devis/nouveau?edit=' + doc.id} className="btn btn-outline btn-sm">Modifier</Link>)
+    if (doc.statut !== 'facture' && !remplace) actions.push(<Link key="edit" to={'/app/devis/nouveau?edit=' + doc.id} className="btn btn-outline btn-sm">Nouvelle version</Link>)
+    if (remplace && versionActuelle) actions.push(<Link key="last" to={'/app/devis/' + versionActuelle.id} className="btn btn-dark btn-sm">Voir la version en cours</Link>)
   } else if (doc.statut === 'attente') {
     actions.push(<button key="rel" className="btn btn-outline btn-sm" onClick={relancer}>Relancer</button>)
     actions.push(<button key="paid" className="btn btn-dark btn-sm" onClick={() => { store.markPaid(doc.id); notify(<>{titre} marquée <strong>payée</strong>.</>) }}>Marquer payée</button>)
   }
-  actions.push(<button key="pdf" className="btn btn-outline btn-sm" onClick={imprimer}>Télécharger en PDF</button>)
+  // Pas de PDF tant que le document n'est pas complet (prix et TVA choisis et validés par l'artisan).
+  const pdfPossible = t.ttc !== null && (doc.lignes || []).every((l) => ligneChiffree(l))
+  actions.push(<button key="pdf" className="btn btn-outline btn-sm" onClick={imprimer} disabled={!pdfPossible} title={pdfPossible ? undefined : 'Complétez et validez le devis avant le PDF'}>Télécharger en PDF</button>)
 
   return (
     <>
@@ -54,6 +64,8 @@ export default function DocView({ kind }) {
       </div>
 
       <article className="paper">
+        <p className="demo-banner">DÉMONSTRATION - NON CONTRACTUEL</p>
+        {remplace && <p className="demo-banner">VERSION REMPLACÉE — NE PAS UTILISER</p>}
         <header className="paper-head">
           <div>
             <strong className="paper-company">{entreprise.nom}</strong>
@@ -91,7 +103,7 @@ export default function DocView({ kind }) {
                   <td>{l.label}</td>
                   <td className="r">{l.qte}</td>
                   <td className="r">{euros(Number(l.prix))}</td>
-                  <td className="r">{euros(l.qte * Number(l.prix))}</td>
+                  <td className="r">{euros(totalLigne(l))}</td>
                 </tr>
               ))}
             </tbody>

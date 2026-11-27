@@ -1,15 +1,19 @@
 import { Link, NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
 import { useStore } from '../store.jsx'
+import Assistant, { assistantActif } from './Assistant.jsx'
 
 export function Logo({ to = '/' }) {
+  // to = null : logo seul (déjà dans un lien).
+  const Racine = to === null ? 'span' : Link
+  const props = to === null ? { className: 'logo' } : { to, className: 'logo', 'aria-label': 'EasyFact, accueil' }
   return (
-    <Link to={to} className="logo" aria-label="EasyFact, accueil">
+    <Racine {...props}>
       <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
         <rect x="3" y="3" width="26" height="26" rx="6" stroke="#fff" strokeWidth="2.6" />
         <path d="M10 16.5l4.5 4.5L22.5 12" stroke="#74E8AE" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span>Easy<span className="fact">Fact</span></span>
-    </Link>
+    </Racine>
   )
 }
 
@@ -34,6 +38,7 @@ export function AppLayout() {
     ['/app/devis', 'Devis'],
     ['/app/factures', 'Factures'],
     ['/app/entreprise', 'Mon entreprise'],
+    ['/aide', 'Aide'],
   ]
   return (
     <div className="app">
@@ -53,16 +58,21 @@ export function AppLayout() {
         <Outlet />
       </main>
       <Toast />
+      {assistantActif && <Assistant />}
     </div>
   )
 }
 
-export function FlowLayout({ children, cancelTo = '/app' }) {
+// confirmer : true si une saisie serait perdue -> on demande confirmation avant d'annuler.
+export function FlowLayout({ children, cancelTo = '/app', confirmer = false }) {
+  const garde = (e) => {
+    if (confirmer && !window.confirm('Abandonner ce document ? Ce que vous avez saisi sera perdu.')) e.preventDefault()
+  }
   return (
     <>
       <header className="topbar">
-        <Logo to="/app" />
-        {cancelTo && <Link to={cancelTo} className="cancel">Annuler</Link>}
+        <Link to="/app" className="logo-link" onClick={garde} aria-label="EasyFact, accueil"><Logo to={null} /></Link>
+        {cancelTo && <Link to={cancelTo} className="cancel" onClick={garde}>Annuler</Link>}
       </header>
       {children}
       <Toast />

@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FlowLayout } from '../components/ui.jsx'
 import { useStore } from '../store.jsx'
+import { METIERS } from '../marche/indices.js'
 
 const Q1 = [
-  { k: 'metiers', label: 'Votre métier', multi: true, opts: ['Plombier', 'Électricien', 'Peintre', 'Maçon', 'Autre'] },
+  { k: 'metiers', label: 'Votre métier', multi: true, opts: [...METIERS, 'Autre'] },
   { k: 'equipe', label: 'Vous travaillez', opts: ['Seul', '2 à 5 personnes', '6 personnes et plus'] },
   { k: 'devisParMois', label: 'Combien de devis par mois ?', opts: ['Moins de 5', '5 à 15', '16 à 30', 'Plus de 30'] },
   { k: 'methode', label: 'Aujourd’hui, vous faites vos devis', multi: true, opts: ['Sur papier', 'Avec Word ou Excel', 'Avec un logiciel'] },
@@ -18,19 +19,20 @@ const Q2 = [
   { k: 'nom', label: 'Nom de l’entreprise', ph: 'Nom de votre entreprise' },
   { k: 'siret', label: 'SIRET', ph: '14 chiffres' },
   { k: 'adresse', label: 'Adresse', ph: 'N°, rue, code postal, ville' },
-  { k: 'telephone', label: 'Téléphone', ph: '06 00 00 00 00' },
+  { k: 'telephone', label: 'Téléphone', ph: '06 39 98 00 00' },
   { k: 'tauxHoraire', label: 'Taux horaire HT (€)', ph: 'Votre taux horaire', num: true },
   { k: 'deplacement', label: 'Frais de déplacement HT (€)', ph: '0 si vous n’en facturez pas', num: true },
   { k: 'assureur', label: 'Assureur décennale', ph: 'Nom de l’assureur' },
   { k: 'contrat', label: 'N° de contrat décennale', ph: 'Numéro de contrat' },
 ]
 
-const empty = { metiers: [], methode: [], clients: [], equipe: '', devisParMois: '', tva: '', acompte: '', delai: '', style: '', anciensDevis: '' }
+const empty = { metierAutre: '', metiers: [], methode: [], clients: [], equipe: '', devisParMois: '', tva: '', acompte: '', delai: '', style: '', anciensDevis: '' }
 
 export default function Questionnaire() {
   const navigate = useNavigate()
-  const { saveEntreprise, notify } = useStore()
+  const { demarrerActivite, notify } = useStore()
   const [a, setA] = useState(empty)
+  const [envoi, setEnvoi] = useState(false)
   const [missing, setMissing] = useState([])
 
   const toggle = (k, v, multi) => {
@@ -40,20 +42,40 @@ export default function Questionnaire() {
   }
   const isOn = (k, v) => (Array.isArray(a[k]) ? a[k].includes(v) : a[k] === v)
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
+    if (envoi) return
     const miss = [...Q1, ...Q2].filter((q) => {
       const v = a[q.k]
       return Array.isArray(v) ? v.length === 0 : v === undefined || String(v).trim() === ''
     })
     if (a.siret && a.siret.replace(/\s/g, '').length !== 14) miss.push({ k: 'siret', label: 'SIRET (14 chiffres)' })
+    if (a.metiers.includes('Autre') && !a.metierAutre.trim()) miss.unshift({ k: 'metierAutre', label: 'Votre métier (Autre)' })
     setMissing(miss.map((q) => q.k))
     if (miss.length) {
       notify('Il manque ' + miss.length + ' réponse' + (miss.length > 1 ? 's' : '') + ' obligatoire' + (miss.length > 1 ? 's' : '') + '.')
+      // On amène l'artisan sur la première réponse manquante (focus + défilement).
+      const k = miss[0].k
+      setTimeout(() => {
+        const el = document.getElementById(k) || document.querySelector(`input[name="${k}"]`)
+        if (el) { el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }) }
+      }, 0)
       return
     }
-    saveEntreprise({ ...a, tauxHoraire: Number(a.tauxHoraire), deplacement: Number(a.deplacement) })
-    notify('C’est réglé ! Bienvenue sur EasyFact.')
+    // « Autre » est remplacé par le métier saisi : c'est lui qui est transmis à l'IA (devis, prix du marché).
+    const { metierAutre, ...reste } = a
+    const metiers = a.metiers.filter((m) => m !== 'Autre').concat(a.metiers.includes('Autre') ? [metierAutre.trim().slice(0, 60)] : [])
+    // Métier « Autre » : l'IA propose les NOMS d'un catalogue de départ (sans prix). En cas d'échec, on continue sans.
+    let elementsIA = []
+    if (a.metiers.includes('Autre')) {
+      setEnvoi(true)
+      try {
+        const rep = await fetch('/api/marche', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ metier: metierAutre.trim(), action: 'catalogue' }) })
+        if (rep.ok) elementsIA = (await rep.json()).elements || []
+      } catch { /* hors ligne : catalogue sans propositions */ }
+    }
+    demarrerActivite({ ...reste, metiers, tauxHoraire: Number(a.tauxHoraire), deplacement: Number(a.deplacement) }, elementsIA)
+    notify(elementsIA.length ? 'C’est réglé ! L’IA a préparé votre catalogue : ajoutez vos prix.' : 'C’est réglé ! Bienvenue sur EasyFact.')
     navigate('/app')
   }
 
@@ -84,7 +106,16 @@ export default function Questionnaire() {
                   </label>
                 ))}
               </div>
-              {err(q.k) && <span className="error">Cette réponse est obligatoire.</span>}
+              {err(q.k) && <span className="error" role="alert">Cette réponse est obligatoire.</span>}
+              {q.k === 'metiers' && a.metiers.includes('Autre') && (
+                <div className="field">
+                  <label htmlFor="metierAutre">Précisez votre métier <span className="req">*</span></label>
+                  <input id="metierAutre" className="input" maxLength={60} placeholder="Ex. : ébéniste, plaquiste, serrurier…" value={a.metierAutre}
+                    onChange={(e) => setA({ ...a, metierAutre: e.target.value })} style={err('metierAutre') ? { borderColor: 'var(--danger)' } : undefined} />
+                  {err('metierAutre') && <span className="error">Indiquez votre métier.</span>}
+                  <p className="muted small">L’IA s’en sert pour comprendre vos demandes et choisir l’index de prix du marché le plus proche.</p>
+                </div>
+              )}
             </fieldset>
           ))}
         </section>
@@ -116,7 +147,7 @@ export default function Questionnaire() {
           </div>
           <div className="field">
             <label htmlFor="anciens">Vos anciens devis <span className="muted" style={{ fontWeight: 400 }}>(facultatif)</span></label>
-            <p className="muted small">L’IA pourra y reprendre vos prestations et vos prix. PDF, photo, Word ou Excel.</p>
+            <p className="muted small">Prochainement : l’IA reprendra vos prestations et vos prix. Démonstration : les fichiers ne sont ni envoyés ni analysés.</p>
             <div className="dropzone">
               <input id="anciens" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"
                 onChange={(e) => setA({ ...a, anciensDevis: [...e.target.files].map((f) => f.name).join(', ') })} />
@@ -135,7 +166,7 @@ export default function Questionnaire() {
           </fieldset>
         </section>
 
-        <button type="submit" className="btn btn-dark btn-block" style={{ minHeight: 56 }}>Terminer et accéder à mon accueil</button>
+        <button type="submit" className="btn btn-dark btn-block" style={{ minHeight: 56 }} disabled={envoi}>{envoi ? 'L’IA prépare votre catalogue…' : 'Terminer et accéder à mon accueil'}</button>
       </form>
     </FlowLayout>
   )
