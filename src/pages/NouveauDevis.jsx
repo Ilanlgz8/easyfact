@@ -128,7 +128,7 @@ export default function NouveauDevis() {
               {infoIA?.mode === 'ia' && <p className="small muted" style={{ marginTop: 6 }}>Lignes proposées par l’IA à partir de votre description. Vérifiez-les.</p>}
               {infoIA?.mode === 'manuel' && <p className="small" style={{ marginTop: 6, color: '#B45309' }}>{infoIA.raison} Saisissez les lignes vous-même.</p>}
               {infoIA?.remarques?.length > 0 && <ul className="small muted" style={{ marginTop: 6 }}>{infoIA.remarques.map((r, i) => <li key={i}>{r}</li>)}</ul>}
-              <LinesEditor doc={doc} setDoc={setDoc} />
+              <LinesEditor doc={doc} setDoc={setDoc} catalogue={prestations} />
             </section>
             <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <label className="check"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />J’ai vérifié les lignes, les prix et le taux de TVA, et je valide ce devis</label>

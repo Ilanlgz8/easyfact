@@ -41,13 +41,38 @@ test('aucune ligne', () => {
   assert.deepEqual(calculerTotaux([], 20), { ht: 0, tva: 0, ttc: 0 })
 })
 test('validation bloquée sans TVA', () => {
-  assert.ok(blocagesValidation({ tva: null, lignes: [L(1, 10)] }).includes('Choisissez le taux de TVA.'))
+  assert.ok(blocagesValidation({ tva: null, lignes: [L(1, 10)] }).some((m) => m.startsWith('Choisissez le taux de TVA')))
 })
 test('validation bloquée avec un prix manquant', () => {
   assert.ok(blocagesValidation({ tva: 20, lignes: [L(1, null)] }).length > 0)
 })
-test('validation bloquée avec un taux non prévu', () => {
-  assert.ok(blocagesValidation({ tva: 7, lignes: [L(1, 10)] }).length > 0)
+// Décision du 27/11/2026 : « Autre taux » saisi par l'artisan (ex. Corse). Les taux aberrants restent refusés.
+test('autre taux saisi par l\'artisan accepté (2,1 %, 13 %)', () => {
+  assert.deepEqual(blocagesValidation({ tva: 2.1, lignes: [L(1, 10)] }), [])
+  assert.deepEqual(blocagesValidation({ tva: 13, lignes: [L(1, 10)] }), [])
+})
+test('taux aberrants refusés : négatif, > 100 %, 3 décimales, texte', () => {
+  for (const tva of [-1, 101, 5.555, 'abc', NaN]) assert.ok(blocagesValidation({ tva, lignes: [L(1, 10)] }).length > 0, String(tva))
+})
+test('TVA 2,1 % : 1 234,56 × 2,1 % = 25,93 (25,92576 arrondi)', () => {
+  assert.deepEqual(calculerTotaux([L(1, 1234.56)], 2.1), { ht: 1234.56, tva: 25.93, ttc: 1260.49 })
+})
+test('total de ligne arrondi avant la somme : 3 × 0,333 n\'existe pas, 1,5 × 33,33 = 50,00 (49,995)', () => {
+  assert.equal(totalLigne(L(1.5, 33.33)), 50)
+  assert.deepEqual(calculerTotaux([L(1.5, 33.33), L(1.5, 33.33)], 0), { ht: 100, tva: 0, ttc: 100 })
+})
+test('prix ou quantité aberrants bloqués', () => {
+  assert.ok(blocagesValidation({ tva: 20, lignes: [L(1, -5)] }).length > 0)
+  assert.ok(blocagesValidation({ tva: 20, lignes: [L(1, 2_000_000)] }).length > 0)
+  assert.ok(blocagesValidation({ tva: 20, lignes: [L(0, 10)] }).length > 0)
+  assert.ok(blocagesValidation({ tva: 20, lignes: [L(20_000, 10)] }).length > 0)
+})
+test('quantité inconnue (null) : ligne exclue du total et validation bloquée', () => {
+  assert.equal(totalLigne(L(null, 10)), null)
+  assert.ok(blocagesValidation({ tva: 20, lignes: [L(null, 10)] }).some((m) => m.startsWith('Indiquez la quantité')))
+})
+test('grands montants sans erreur de virgule flottante', () => {
+  assert.deepEqual(calculerTotaux([L(3, 333333.33)], 20), { ht: 999999.99, tva: 200000, ttc: 1199999.99 })
 })
 test('validation possible quand tout est rempli', () => {
   assert.deepEqual(blocagesValidation({ tva: 10, lignes: [L(1, 10)] }), [])

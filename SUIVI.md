@@ -12,7 +12,7 @@ Voir la section « Lots » : premier lot non terminé.
 |---|---|---|
 | Comptes, authentification serveur, isolation | ABSENT | décision : pas de serveur pour la démo (voir décisions) |
 | Base de données, sauvegarde, restauration | ABSENT | idem |
-| Calculs HT / TVA / TTC | TESTÉ | `npm test` |
+| Calculs HT / TVA / TTC | TESTÉ | en centimes entiers, ordre et arrondis documentés dans src/devis/calcul.js ; écran et PDF utilisent les mêmes fonctions |
 | TVA sans défaut, choix par l'artisan | TESTÉ | `npm test` + navigateur |
 | Extraction IA | PARTIEL | voir lot 5 |
 | Chatbot | ABSENT | lot 8 (simulé) |
@@ -26,7 +26,7 @@ Voir la section « Lots » : premier lot non terminé.
 | 0 | SUIVI, CLAUDE, README, interrupteur dictée | TESTÉ (commit 20e84de) |
 | 1-2 | Tests de non-régression, double clic | TESTÉ : tests/cycle.test.js + triple clic en navigateur = 1 devis |
 | 3 | Versions de devis figées | TESTÉ : v2 créée, v1 « remplacée » consultable, conflit affiché si on modifie une version remplacée |
-| 4 | Centimes, « Autre taux » de TVA | à faire |
+| 4 | Centimes, « Autre taux » de TVA | TESTÉ : 52 tests ; navigateur 1,5 × 12,05 = 18,08 €, TVA 2,1 % = 0,38 €, TTC 18,46 € |
 | 5 | Extraction IA conforme + 20 cas | à faire |
 | 6 | Corrections d'expérience | à faire |
 | 7 | Aide, guides, scénario de démo | à faire |
@@ -53,6 +53,7 @@ Voir la section « Lots » : premier lot non terminé.
 ## Dette
 - Pas de serveur : quotas, droits, numérotation et verrous ne valent que pour un navigateur.
 - `/api/extraire` sans authentification ni quota serveur : garder `IA_ACTIVE=false` en production.
+- Factures : la TVA y est encore préremplie (20 % pro, 10 % particulier) ; écrans de factures non modifiés.
 - Dépendances : `npm audit` signale vite (élevée, serveur de dev) et react-router (modérée).
 
 ## Dépense IA
