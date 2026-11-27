@@ -23,7 +23,7 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | Chatbot (simulé, sans IA) | TESTÉ | derrière VITE_CHATBOT_SIMULE, jamais actif en build de production ; mémoire dans le navigateur ; vrai chatbot IA : ABSENT (nécessite une base) |
 | Double clic / numérotation | TESTÉ | clé d’idempotence, src/devis/cycle.js (valable pour un navigateur) |
 | Versions et copie figée | TESTÉ | entreprise et client copiés à la validation ; anciens devis d’exemple sans copie |
-| Dictée vocale | CODÉ NON TESTÉ (Chrome OK à la main) | derrière `VITE_DICTEE_ACTIVE`, désactivée par défaut |
+| Dictée vocale | CODÉ, chaîne serveur TESTÉE | enregistrement dans le navigateur (Edge, Brave, Chrome) + transcription Whisper OVH via /api/transcrire ; 7 tests ; appel réel OK (silence filtré) ; voix réelle à tester par l’équipe ; interrupteurs VITE_DICTEE_ACTIVE + IA_ACTIVE |
 
 ## Lots
 | Lot | Contenu | État |
@@ -50,6 +50,7 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | 27/11/2026 | Commit par lot, sans push | réponse question 9 |
 | 27/11/2026 | Prompt d’extraction v2.2 ; 2 corrections utilisées (règle : 2 max) | cas 11 : WC rattaché à tort au chauffe-eau ; corrigé |
 | 27/11/2026 | Quantité inconnue = null (plus de « 1 » par défaut) | « aucune quantité inventée » |
+| 27/11/2026 | Ajout du modèle whisper-large-v3-turbo (OVH) pour la dictée, avec accord | la reconnaissance vocale du navigateur ne marche pas dans Brave et pas chez l’équipe dans Edge |
 | 27/11/2026 | Budget de test IA : 5 € au total malgré 200 € de crédits OVH | règle du prompt ; dépensé avant ce jour : ≈ 0 € |
 
 ## Questions ouvertes
@@ -59,7 +60,8 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 
 ## Dette
 - Pas de serveur : quotas, droits, numérotation et verrous ne valent que pour un navigateur.
-- `/api/extraire` sans authentification ni quota serveur : garder `IA_ACTIVE=false` en production.
+- Prix de whisper-large-v3-turbo non trouvé dans la documentation : à vérifier sur la facture OVH.
+- `/api/extraire` et `/api/transcrire` sans authentification ni quota serveur : garder `IA_ACTIVE=false` en production.
 - Factures : la TVA y est encore préremplie (20 % pro, 10 % particulier) ; écrans de factures non modifiés.
 - Mot de passe oublié, comptes, isolation, sauvegarde/restauration, journal des actions, test de charge : impossibles sans serveur.
 - Import CSV et export des données : non faits (hors choix « aide courte »).
@@ -70,4 +72,5 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 |---|---|---|
 | 26-27/11/2026 | ≈ 50 refusés (401, non facturés) + 1 réussi | < 0,001 € |
 | 27/11/2026 | 3 passages des 20 cas (≈ 55 appels) + 1 essai navigateur | ≈ 0,004 € estimé (0,09 / 0,28 € par M tokens) |
+| 27/11/2026 | 2 transcriptions Whisper de test (1 s chacune) | négligeable (prix exact non trouvé, facturé à la seconde) |
 | **Total** | | **≈ 0,005 € sur 5 €** |
