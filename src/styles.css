@@ -254,3 +254,5 @@ a.row-main:hover strong { text-decoration: underline; }
 
 /* Quantité saisissable (lot 4) */
 .qty-input { width: 64px; min-height: 44px; text-align: center; font-weight: 600; border: 1.5px solid var(--border); border-radius: 10px; padding: 0 6px; }
+.logo-link { text-decoration: none; }
+.linklike { background: none; border: none; padding: 0; color: var(--forest); text-decoration: underline; cursor: pointer; }

@@ -51,7 +51,7 @@ export default function Landing() {
             {[
               ['Choisissez', 'Un gros bouton « Nouveau devis », un autre « Nouvelle facture ». Rien d’autre à chercher.'],
               ['Remplissez', 'Client, prestations, prix. Vos lignes habituelles sont déjà enregistrées pour aller plus vite.'],
-              ['Envoyez', 'Le document part chez votre client par mail ou SMS. Vous suivez ce qui est signé et payé.'],
+              ['Envoyez', 'Vous validez, vous téléchargez le PDF et vous le transmettez à votre client. Vous suivez ce qui est signé et payé. (Démo : aucun envoi automatique.)'],
             ].map(([t, d], i) => (
               <div key={t} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <span className="num">{i + 1}</span>
@@ -77,7 +77,7 @@ export default function Landing() {
           <Link to="/inscription" className="btn btn-mint" style={{ marginTop: 28 }}>Créer mon premier devis</Link>
           <div className="footer-bar">
             <span>© EasyFact</span>
-            <span><a href="#">Mentions légales</a><a href="#">Contact</a></span>
+            <span><Link to="/aide#donnees">Données et démo</Link><Link to="/aide#support">Aide et contact</Link></span>
           </div>
         </div>
       </section>

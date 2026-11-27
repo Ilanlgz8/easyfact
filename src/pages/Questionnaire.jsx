@@ -50,6 +50,12 @@ export default function Questionnaire() {
     setMissing(miss.map((q) => q.k))
     if (miss.length) {
       notify('Il manque ' + miss.length + ' réponse' + (miss.length > 1 ? 's' : '') + ' obligatoire' + (miss.length > 1 ? 's' : '') + '.')
+      // On amène l'artisan sur la première réponse manquante (focus + défilement).
+      const k = miss[0].k
+      setTimeout(() => {
+        const el = document.getElementById(k) || document.querySelector(`input[name="${k}"]`)
+        if (el) { el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }) }
+      }, 0)
       return
     }
     saveEntreprise({ ...a, tauxHoraire: Number(a.tauxHoraire), deplacement: Number(a.deplacement) })
@@ -84,7 +90,7 @@ export default function Questionnaire() {
                   </label>
                 ))}
               </div>
-              {err(q.k) && <span className="error">Cette réponse est obligatoire.</span>}
+              {err(q.k) && <span className="error" role="alert">Cette réponse est obligatoire.</span>}
             </fieldset>
           ))}
         </section>
@@ -116,7 +122,7 @@ export default function Questionnaire() {
           </div>
           <div className="field">
             <label htmlFor="anciens">Vos anciens devis <span className="muted" style={{ fontWeight: 400 }}>(facultatif)</span></label>
-            <p className="muted small">L’IA pourra y reprendre vos prestations et vos prix. PDF, photo, Word ou Excel.</p>
+            <p className="muted small">Prochainement : l’IA reprendra vos prestations et vos prix. Démonstration : les fichiers ne sont ni envoyés ni analysés.</p>
             <div className="dropzone">
               <input id="anciens" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"
                 onChange={(e) => setA({ ...a, anciensDevis: [...e.target.files].map((f) => f.name).join(', ') })} />

@@ -73,7 +73,7 @@ export default function NouveauDevis() {
   }
 
   return (
-    <FlowLayout>
+    <FlowLayout confirmer={!edited && (step > 0 || texte.trim() !== "")}>
       <div className="flow">
         <h1>{edited ? `Nouvelle version du devis n° ${edited.numero}` : 'Nouveau devis'}</h1>
         {edited && <p className="muted">La version actuelle reste consultable. Elle sera marquée « remplacée » quand vous validerez celle-ci.</p>}

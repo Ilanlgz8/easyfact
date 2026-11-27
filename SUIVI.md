@@ -28,7 +28,7 @@ Voir la section « Lots » : premier lot non terminé.
 | 3 | Versions de devis figées | TESTÉ : v2 créée, v1 « remplacée » consultable, conflit affiché si on modifie une version remplacée |
 | 4 | Centimes, « Autre taux » de TVA | TESTÉ : 52 tests ; navigateur 1,5 × 12,05 = 18,08 €, TVA 2,1 % = 0,38 €, TTC 18,46 € |
 | 5 | Extraction IA conforme + 20 cas | PARTIEL : schéma strict, masquage, 429, quota local, prompt versionné TESTÉS ; 20 cas réels : 19/20, 16/17 lignes exactes (94 % < 95 %) après 2 corrections → IA laissée désactivée par défaut |
-| 6 | Corrections d'expérience | à faire |
+| 6 | Corrections d'expérience | CODÉ, vérifié au lot 7 : focus 1re erreur du questionnaire, catalogue en saisie manuelle (lot 4), confirmation d'annulation, textes accueil et questionnaire, liens morts remplacés |
 | 7 | Aide, guides, scénario de démo | à faire |
 | 8 | Chatbot simulé | à faire |
 
