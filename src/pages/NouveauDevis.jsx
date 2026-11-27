@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FlowLayout, Steps } from '../components/ui.jsx'
 import LinesEditor from '../components/LinesEditor.jsx'
+import BoutonDictee from '../components/BoutonDictee.jsx'
 import { useStore } from '../store.jsx'
 import { extraireLignes } from '../ia.js'
 import { blocagesValidation } from '../devis/calcul.js'
@@ -96,6 +97,7 @@ export default function NouveauDevis() {
             <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <label htmlFor="travaux" style={{ fontWeight: 700, fontSize: 22 }}>Décrivez les travaux en quelques mots</label>
               <textarea id="travaux" className="input" placeholder="Ex. : remplacement chauffe-eau 200 L, 2 h" value={texte} onChange={(e) => setTexte(e.target.value)} />
+              <BoutonDictee valeur={texte} onChange={setTexte} />
               <label htmlFor="photos" style={{ fontWeight: 700, fontSize: 22 }}>Ajoutez des photos du chantier</label>
               <div className="dropzone"><input id="photos" type="file" accept="image/*" multiple onChange={(e) => setPhotos([...e.target.files].map((f) => f.name))} /></div>
               {photos.length > 0 && <p className="small muted">{photos.length} photo{photos.length > 1 ? 's' : ''} ajoutée{photos.length > 1 ? 's' : ''}.</p>}
