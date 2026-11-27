@@ -16,14 +16,16 @@ Voir la section « Lots » : premier lot non terminé.
 | TVA sans défaut, choix par l'artisan | TESTÉ | `npm test` + navigateur |
 | Extraction IA | PARTIEL | voir lot 5 |
 | Chatbot | ABSENT | lot 8 (simulé) |
+| Double clic / numérotation | TESTÉ | clé d’idempotence, src/devis/cycle.js (valable pour un navigateur) |
+| Versions et copie figée | TESTÉ | entreprise et client copiés à la validation ; anciens devis d’exemple sans copie |
 | Dictée vocale | CODÉ NON TESTÉ (Chrome OK à la main) | derrière `VITE_DICTEE_ACTIVE`, désactivée par défaut |
 
 ## Lots
 | Lot | Contenu | État |
 |---|---|---|
-| 0 | SUIVI, CLAUDE, README, interrupteur dictée | en cours |
-| 1-2 | Tests de non-régression, double clic | à faire |
-| 3 | Versions de devis figées | à faire |
+| 0 | SUIVI, CLAUDE, README, interrupteur dictée | TESTÉ (commit 20e84de) |
+| 1-2 | Tests de non-régression, double clic | TESTÉ : tests/cycle.test.js + triple clic en navigateur = 1 devis |
+| 3 | Versions de devis figées | TESTÉ : v2 créée, v1 « remplacée » consultable, conflit affiché si on modifie une version remplacée |
 | 4 | Centimes, « Autre taux » de TVA | à faire |
 | 5 | Extraction IA conforme + 20 cas | à faire |
 | 6 | Corrections d'expérience | à faire |

@@ -1,15 +1,15 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FlowLayout, Steps } from '../components/ui.jsx'
 import LinesEditor from '../components/LinesEditor.jsx'
 import BoutonDictee from '../components/BoutonDictee.jsx'
 import { useStore } from '../store.jsx'
 import { extraireLignes } from '../ia.js'
-import { blocagesValidation } from '../devis/calcul.js'
+import { blocagesValidation, ligneChiffree } from '../devis/calcul.js'
 
 export default function NouveauDevis() {
   const navigate = useNavigate()
-  const { clients, devis, prestations, entreprise, client, addClient, addDevis, updateDevis, notify } = useStore()
+  const { clients, devis, prestations, client, addClient, validerDevis, nouvelleVersionDevis, notify } = useStore()
   const [params] = useSearchParams()
   // Mode « Modifier » : on ouvre directement l'étape de vérification avec les lignes du devis
   const edited = devis.find((d) => d.id === params.get('edit'))
@@ -38,17 +38,26 @@ export default function NouveauDevis() {
 
   const blocages = doc ? blocagesValidation(doc) : []
 
+  // Clé unique de cette validation : un double clic ou un réessai ne crée pas de 2e devis.
+  const cle = useRef(crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random())
+  const [envoi, setEnvoi] = useState(false)
+  const [erreurValidation, setErreurValidation] = useState('')
+
   const valider = () => {
-    if (blocages.length) return
-    const lignes = doc.lignes.filter((l) => l.label.trim() || l.prix).map(({ horsCatalogue, ...l }) => ({ ...l, prix: Number(l.prix) }))
-    if (edited) {
-      updateDevis(edited.id, { ...doc, lignes, statut: 'attente' })
-      notify(<>Devis n° {edited.numero} modifié et validé (démo : rien n’est envoyé à <strong>{client(clientId).nom}</strong>).</>)
-      return navigate('/app/devis/' + edited.id)
+    if (blocages.length || envoi) return
+    setEnvoi(true)
+    setErreurValidation('')
+    const lignes = doc.lignes.filter((l) => l.label.trim() || ligneChiffree(l)).map(({ horsCatalogue, ...l }) => ({ ...l, prix: Number(l.prix), qte: Number(l.qte) }))
+    const r = edited ? nouvelleVersionDevis(edited.id, { ...doc, lignes }, cle.current) : validerDevis({ ...doc, lignes }, cle.current)
+    if (r.erreur) {
+      setEnvoi(false)
+      // Les lignes saisies restent à l'écran.
+      if (r.erreur === 'conflit') return setErreurValidation('Ce devis a déjà été modifié ou facturé (peut-être dans un autre onglet). Vos lignes sont conservées : ouvrez la dernière version du devis pour repartir de celle-ci.')
+      return setErreurValidation('L’enregistrement a échoué. Vos lignes sont conservées : réessayez.')
     }
-    const numero = addDevis({ ...doc, lignes })
-    notify(<>Devis n° {numero} validé (démo : aucun e-mail envoyé à <strong>{client(clientId).nom}</strong>).</>)
-    navigate('/app/devis')
+    const v = r.devis.version > 1 ? ` (version ${r.devis.version})` : ''
+    notify(<>Devis n° {r.devis.numero}{v} validé (démo : rien n’est envoyé à <strong>{client(clientId).nom}</strong>).</>)
+    navigate('/app/devis/' + r.devis.id)
   }
 
   const saveClient = () => {
@@ -61,7 +70,8 @@ export default function NouveauDevis() {
   return (
     <FlowLayout>
       <div className="flow">
-        <h1>{edited ? `Modifier le devis n° ${edited.numero}` : 'Nouveau devis'}</h1>
+        <h1>{edited ? `Nouvelle version du devis n° ${edited.numero}` : 'Nouveau devis'}</h1>
+        {edited && <p className="muted">La version actuelle reste consultable. Elle sera marquée « remplacée » quand vous validerez celle-ci.</p>}
         <Steps labels={['Client', 'Travaux', 'Vérification']} current={step} />
 
         {step === 0 && (
@@ -124,7 +134,8 @@ export default function NouveauDevis() {
               <label className="check"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />J’ai vérifié les lignes, les prix et le taux de TVA, et je valide ce devis</label>
               {blocages.length > 0 && <ul className="small" style={{ color: '#B45309' }}>{blocages.map((b) => <li key={b}>{b}</li>)}</ul>}
               <p className="muted">Démonstration : aucun e-mail n’est envoyé au client.</p>
-              <button className="btn btn-dark btn-block" disabled={!ok || blocages.length > 0} onClick={valider} style={{ minHeight: 56 }}>Valider le devis (démo, aucun envoi)</button>
+              {erreurValidation && <p className="error" role="alert">{erreurValidation}</p>}
+              <button className="btn btn-dark btn-block" disabled={!ok || blocages.length > 0 || envoi} onClick={valider} style={{ minHeight: 56 }}>{envoi ? 'Enregistrement…' : 'Valider le devis (démo, aucun envoi)'}</button>
             </section>
             <div className="flow-actions"><button className="btn btn-outline" onClick={() => (edited ? navigate('/app/devis/' + edited.id) : (setStep(1), setOk(false)))}>Retour</button></div>
           </>

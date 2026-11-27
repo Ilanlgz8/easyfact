@@ -97,6 +97,7 @@ export const statutDevis = {
   attente: { label: 'En attente de réponse', tone: 'yellow' },
   signe: { label: 'Signé', tone: 'grey' },
   facture: { label: 'Facturé', tone: 'grey' },
+  remplace: { label: 'Remplacé par une nouvelle version', tone: 'grey' },
 }
 
 export const statutFacture = {

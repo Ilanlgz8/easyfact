@@ -29,7 +29,7 @@ export default function DevisList() {
       <section className="list">
         {devis.map((d) => (
           <div className="row" key={d.id}>
-            <Link to={'/app/devis/' + d.id} className="row-main" style={{ textDecoration: 'none' }}><strong>{client(d.clientId).nom}</strong><span>Devis n° {d.numero}</span></Link>
+            <Link to={'/app/devis/' + d.id} className="row-main" style={{ textDecoration: 'none' }}><strong>{client(d.clientId).nom}</strong><span>Devis n° {d.numero}{d.version > 1 ? ` · version ${d.version}` : ''}</span></Link>
             <div className="row-side">
               <span className="amount">{euros(montant(d))}</span>
               <Badge tone={statutDevis[d.statut].tone}>{statutDevis[d.statut].label}</Badge>

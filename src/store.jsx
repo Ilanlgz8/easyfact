@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { seed } from './data.js'
 import { round2, calculerTotaux } from './devis/calcul.js'
+import { creerDevis, nouvelleVersion } from './devis/cycle.js'
 export { round2 }
 
 const KEY = 'easyfact-demo-v3' // v3 : données 100 % fictives (adresses, e-mails .example, téléphone de la plage fiction ARCEP)
@@ -45,12 +46,26 @@ const nextNumero = (list) => {
 }
 
 export function StoreProvider({ children }) {
-  const [state, setState] = useState(load)
+  const [state, setStateBrut] = useState(load)
   const [toast, setToast] = useState(null)
+  // Copie synchrone de l'état : deux actions rapprochées (double clic) voient le même état à jour.
+  const ref = useRef(state)
+  const setState = useCallback((next) => {
+    const v = typeof next === 'function' ? next(ref.current) : next
+    ref.current = v
+    setStateBrut(v)
+    try { localStorage.setItem(KEY, JSON.stringify(v)) } catch (e) { /* stockage indisponible */ }
+  }, [])
 
+  // Autre onglet : on reprend son état pour ne pas l'écraser (le verrou de version s'appuie dessus).
   useEffect(() => {
-    try { localStorage.setItem(KEY, JSON.stringify(state)) } catch (e) { /* ignore */ }
-  }, [state])
+    const surStockage = (e) => {
+      if (e.key !== KEY || !e.newValue) return
+      try { const v = JSON.parse(e.newValue); ref.current = v; setStateBrut(v) } catch (err) { /* ignore */ }
+    }
+    window.addEventListener('storage', surStockage)
+    return () => window.removeEventListener('storage', surStockage)
+  }, [])
 
   const notify = useCallback((msg) => {
     setToast(msg)
@@ -59,6 +74,7 @@ export function StoreProvider({ children }) {
   }, [])
 
   const update = (fn) => setState((s) => ({ ...s, ...fn(s) }))
+  const fiche = (s, clientId) => s.clients.find((c) => c.id === clientId) || null
 
   const api = {
     ...state,
@@ -80,13 +96,21 @@ export function StoreProvider({ children }) {
     addPrestation: (p) => update((s) => ({ prestations: [...s.prestations, { ...p, id: 'p' + Date.now() }] })),
     updatePrestation: (id, p) => update((s) => ({ prestations: s.prestations.map((x) => (x.id === id ? { ...x, ...p } : x)) })),
 
-    updateDevis: (id, patch) => update((s) => ({ devis: s.devis.map((d) => (d.id === id ? { ...d, ...patch } : d)) })),
     signDevis: (id) => update((s) => ({ devis: s.devis.map((d) => (d.id === id ? { ...d, statut: 'signe' } : d)) })),
     sendDevis: (id) => update((s) => ({ devis: s.devis.map((d) => (d.id === id ? { ...d, statut: 'attente' } : d)) })),
-    addDevis: (doc) => {
-      const numero = nextNumero(state.devis)
-      update((s) => ({ devis: [{ ...doc, id: 'd' + Date.now(), numero, date: today(), statut: 'attente' }, ...s.devis] }))
-      return numero
+    // Validation d'un devis (idempotente grâce à la clé) : renvoie { devis, dejaFait } ou { erreur }.
+    validerDevis: (doc, cle) => {
+      const s = ref.current
+      const r = creerDevis(s, doc, { id: 'd' + Date.now(), date: today(), cle, entreprise: s.entreprise, client: fiche(s, doc.clientId) })
+      if (!r.erreur && !r.dejaFait) setState(r.etat)
+      return r
+    },
+    // Nouvelle version d'un devis validé : l'ancien reste consultable (statut « remplacé »).
+    nouvelleVersionDevis: (ancienId, doc, cle) => {
+      const s = ref.current
+      const r = nouvelleVersion(s, ancienId, doc, { id: 'd' + Date.now(), date: today(), cle, entreprise: s.entreprise, client: fiche(s, doc.clientId) })
+      if (!r.erreur && !r.dejaFait) setState(r.etat)
+      return r
     },
     addFacture: (doc, fromDevisId) => update((s) => ({
       factures: [{ ...doc, id: 'f' + Date.now(), numero: nextNumero(s.factures), date: today(), statut: 'attente' }, ...s.factures],
@@ -94,7 +118,7 @@ export function StoreProvider({ children }) {
     })),
     markPaid: (id) => update((s) => ({ factures: s.factures.map((f) => (f.id === id ? { ...f, statut: 'payee' } : f)) })),
 
-    resetDemo: () => setState({ ...structuredClone(seed), user: state.user, onboarded: true }),
+    resetDemo: () => setState({ ...structuredClone(seed), user: ref.current.user, onboarded: true }),
   }
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>
