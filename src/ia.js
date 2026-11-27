@@ -64,7 +64,7 @@ function lireQuota() {
 const compter = (q) => { try { localStorage.setItem(CLE_QUOTA, JSON.stringify({ ...q, n: q.n + 1 })) } catch { /* ignore */ } }
 export const quotaRestant = () => Math.max(0, QUOTA_JOUR - lireQuota().n)
 
-export async function extraireLignes(texte, prestations, nomsClients = []) {
+export async function extraireLignes(texte, prestations, nomsClients = [], metiers = []) {
   if (!String(texte || '').trim()) return { mode: 'manuel', raison: 'Aucune description saisie.' }
   const q = lireQuota()
   if (q.n >= QUOTA_JOUR) return { mode: 'manuel', raison: `Limite de ${QUOTA_JOUR} préparations par l’IA atteinte aujourd’hui.` }
@@ -73,7 +73,7 @@ export async function extraireLignes(texte, prestations, nomsClients = []) {
     const rep = await fetch('/api/extraire', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ texte: masquer(texte, nomsClients), catalogue: prestations.map(({ id, nom, detail }) => ({ id, nom, detail })) }),
+      body: JSON.stringify({ texte: masquer(texte, nomsClients), catalogue: prestations.map(({ id, nom, detail }) => ({ id, nom, detail })), metiers }),
     })
     if (rep.status === 503 || rep.status === 404) return { mode: 'manuel', raison: 'L’assistant IA est désactivé.' }
     if (rep.status === 429) {

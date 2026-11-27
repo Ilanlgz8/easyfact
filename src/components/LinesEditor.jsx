@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { euros, round2, totaux } from '../store.jsx'
 import { TAUX_TVA, totalLigne, ligneChiffree } from '../devis/calcul.js'
+import { suggererPrix, moisLisible } from '../marche/indices.js'
 
 // Saisie d'un nombre décimal (virgule ou point, 2 décimales au plus). On garde le texte tapé
 // tel quel (« 12,0 » ne devient pas « 12 » en cours de frappe) ; '' = non renseigné (null).
@@ -9,7 +10,16 @@ const versValeur = (v) => (v === '' ? null : v.replace(',', '.'))
 const affiche = (v) => (v === null || v === undefined ? '' : String(v).replace('.', ','))
 
 // Éditeur de lignes partagé par « Nouveau devis » et « Nouvelle facture »
-export default function LinesEditor({ doc, setDoc, acomptePct = 0, catalogue = [] }) {
+// Suggestion « prix du marché » pour une ligne : seulement si elle reprend une prestation du catalogue
+// à son prix du catalogue (l'artisan n'y a pas encore touché) et que la date de ce prix est connue.
+function suggestionMarche(l, catalogue, marche) {
+  if (!marche?.serie) return null
+  const p = catalogue.find((x) => x.nom === l.label && x.prixDepuis)
+  if (!p || l.prix === null || Number(l.prix) !== Number(p.prix)) return null
+  return suggererPrix(p.prix, marche.serie, p.prixDepuis)
+}
+
+export default function LinesEditor({ doc, setDoc, acomptePct = 0, catalogue = [], marche = null }) {
   const setLine = (i, patch) => setDoc({ ...doc, lignes: doc.lignes.map((l, j) => (j === i ? { ...l, ...patch } : l)) })
   const remove = (i) => setDoc({ ...doc, lignes: doc.lignes.filter((_, j) => j !== i) })
   const t = totaux(doc)
@@ -55,6 +65,19 @@ export default function LinesEditor({ doc, setDoc, acomptePct = 0, catalogue = [
           <span className="line-total">{totalLigne(l) === null ? 'À chiffrer' : euros(totalLigne(l))}</span>
           {l.horsCatalogue && <p className="muted small" style={{ flexBasis: '100%', color: '#B45309' }}>Hors catalogue : prestation non trouvée dans vos tarifs. Saisissez votre prix ou supprimez la ligne.</p>}
           {l.qte === null && <p className="muted small" style={{ flexBasis: '100%', color: '#B45309' }}>Quantité non précisée dans la demande : indiquez-la.</p>}
+          {(() => {
+            const sg = suggestionMarche(l, catalogue, marche)
+            if (!sg) return null
+            return (
+              <div className="small marche" role="note" style={{ flexBasis: '100%' }}>
+                <span>
+                  Marché ({marche.code}, {marche.libelle}) : <strong>{sg.ecartPct > 0 ? '+' : ''}{String(sg.ecartPct).replace('.', ',')} %</strong> entre {moisLisible(sg.moisRef)} (date de votre prix) et {moisLisible(sg.moisDernier)}.
+                  {' '}Prix suggéré : <strong>{euros(sg.prixSuggere)}</strong> au lieu de {euros(l.prix)}.
+                </span>
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => setLine(i, { prix: sg.prixSuggere })}>Appliquer</button>
+              </div>
+            )
+          })()}
         </div>
       ))}
 

@@ -23,6 +23,8 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | Chatbot (simulé, sans IA) | TESTÉ | derrière VITE_CHATBOT_SIMULE, jamais actif en build de production ; mémoire dans le navigateur ; vrai chatbot IA : ABSENT (nécessite une base) |
 | Double clic / numérotation | TESTÉ | clé d’idempotence, src/devis/cycle.js (valable pour un navigateur) |
 | Versions et copie figée | TESTÉ | entreprise et client copiés à la validation ; anciens devis d’exemple sans copie |
+| Prix du marché pendant le devis | TESTÉ (navigateur + 11 tests, 27/11/2026) | index INSEE BT (service SDMX public) via /api/marche, interrupteur MARCHE_ACTIF ; plombier BT38 : +8,5 % sept. 2025 → sept. 2026, mitigeur 80 € → 86,81 € suggéré, « Appliquer » OK ; suggestion seulement sur une ligne du catalogue à son prix et dont la date du prix est connue |
+| Métiers (liste complète + « Autre » libre) | TESTÉ (navigateur) | métier transmis à l’IA du devis (prompt v2.3) ; métier « Autre » rattaché à un index par l’IA (Ébéniste → BT18a, appel réel OK) |
 | Dictée vocale | TESTÉ (voix réelle dans Edge par l’équipe, 27/11/2026) | enregistrement dans le navigateur (Edge, Brave, Chrome) + transcription Whisper OVH via /api/transcrire ; 7 tests ; appel réel OK (silence filtré) ; interrupteurs VITE_DICTEE_ACTIVE + IA_ACTIVE |
 
 ## Lots
@@ -35,6 +37,7 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | 5 | Extraction IA conforme + 20 cas | PARTIEL : schéma strict, masquage, 429, quota local, prompt versionné TESTÉS ; 20 cas réels : 19/20, 16/17 lignes exactes (94 % < 95 %) après 2 corrections → IA laissée désactivée par défaut |
 | 6 | Corrections d'expérience | TESTÉ (focus questionnaire vérifié ; confirmation d'annulation non jouée en automatique) : focus 1re erreur du questionnaire, catalogue en saisie manuelle (lot 4), confirmation d'annulation, textes accueil et questionnaire, liens morts remplacés |
 | 7 | Aide, guides, scénario de démo | TESTÉ : page /aide (8 sections), GUIDE-ARTISAN.md, EXPLOITATION.md, DEMO.md (5 min + secours + script vidéo) |
+| 9 | Prix du marché (INSEE) + métiers | TESTÉ : 100 tests ; 20 cas réels avec le prompt v2.3 : 20/20, 17/17 lignes exactes (un seul passage) ; parcours devis vérifié dans le navigateur |
 | 8 | Chatbot simulé | TESTÉ : 16 tests (homonymes, dates Paris, info absente, source, ancien prix, hors périmètre, injection stockée, écriture refusée, conversations) ; navigateur : sources réelles, HTML échappé, mémoire après rechargement, plein écran à 390 px |
 
 ## Décisions
@@ -51,6 +54,9 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | 27/11/2026 | Prompt d’extraction v2.2 ; 2 corrections utilisées (règle : 2 max) | cas 11 : WC rattaché à tort au chauffe-eau ; corrigé |
 | 27/11/2026 | Quantité inconnue = null (plus de « 1 » par défaut) | « aucune quantité inventée » |
 | 27/11/2026 | Ajout du modèle whisper-large-v3-turbo (OVH) pour la dictée, avec accord | la reconnaissance vocale du navigateur ne marche pas dans Brave et pas chez l’équipe dans Edge |
+| 27/11/2026 | Prix du marché = index officiels INSEE « Index du bâtiment » (BT), pas l’IA, avec accord | un modèle ne connaît pas les prix du mois ; l’index mesure une évolution, le code l’applique au prix de l’artisan (centimes) |
+| 27/11/2026 | Le prix du marché est proposé pendant le devis, l’artisan valide (« Appliquer ») | réponse de l’équipe |
+| 27/11/2026 | L’IA ne choisit qu’un index dans une liste fermée pour un métier « Autre » ; jamais un chiffre | règle « montants calculés par le code » |
 | 27/11/2026 | Budget de test IA : 5 € au total malgré 200 € de crédits OVH | règle du prompt ; dépensé avant ce jour : ≈ 0 € |
 
 ## Questions ouvertes
@@ -65,6 +71,8 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 - Factures : la TVA y est encore préremplie (20 % pro, 10 % particulier) ; écrans de factures non modifiés.
 - Mot de passe oublié, comptes, isolation, sauvegarde/restauration, journal des actions, test de charge : impossibles sans serveur.
 - Import CSV et export des données : non faits (hors choix « aide courte »).
+- Prix du marché : un seul index par entreprise (celui du métier) pour toutes les prestations ; pas d’index par prestation. Index publiés avec ≈ 2 mois de retard.
+- Prix des prestations créées avant la date des prix (`prixDepuis`) : pas de suggestion tant que le prix n’est pas réenregistré.
 - Dépendances : `npm audit` signale vite (élevée, serveur de dev) et react-router (modérée).
 
 ## Dépense IA
@@ -73,4 +81,5 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | 26-27/11/2026 | ≈ 50 refusés (401, non facturés) + 1 réussi | < 0,001 € |
 | 27/11/2026 | 3 passages des 20 cas (≈ 55 appels) + 1 essai navigateur | ≈ 0,004 € estimé (0,09 / 0,28 € par M tokens) |
 | 27/11/2026 | 2 transcriptions Whisper de test (1 s chacune) | négligeable (prix exact non trouvé, facturé à la seconde) |
-| **Total** | | **≈ 0,005 € sur 5 €** |
+| 27/11/2026 | 1 passage des 20 cas (prompt v2.3) + 1 devis navigateur + 1 classement de métier | ≈ 0,0015 € |
+| **Total** | | **≈ 0,007 € sur 5 €** |

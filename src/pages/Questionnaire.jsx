@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FlowLayout } from '../components/ui.jsx'
 import { useStore } from '../store.jsx'
+import { METIERS } from '../marche/indices.js'
 
 const Q1 = [
-  { k: 'metiers', label: 'Votre métier', multi: true, opts: ['Plombier', 'Électricien', 'Peintre', 'Maçon', 'Autre'] },
+  { k: 'metiers', label: 'Votre métier', multi: true, opts: [...METIERS, 'Autre'] },
   { k: 'equipe', label: 'Vous travaillez', opts: ['Seul', '2 à 5 personnes', '6 personnes et plus'] },
   { k: 'devisParMois', label: 'Combien de devis par mois ?', opts: ['Moins de 5', '5 à 15', '16 à 30', 'Plus de 30'] },
   { k: 'methode', label: 'Aujourd’hui, vous faites vos devis', multi: true, opts: ['Sur papier', 'Avec Word ou Excel', 'Avec un logiciel'] },
@@ -25,7 +26,7 @@ const Q2 = [
   { k: 'contrat', label: 'N° de contrat décennale', ph: 'Numéro de contrat' },
 ]
 
-const empty = { metiers: [], methode: [], clients: [], equipe: '', devisParMois: '', tva: '', acompte: '', delai: '', style: '', anciensDevis: '' }
+const empty = { metierAutre: '', metiers: [], methode: [], clients: [], equipe: '', devisParMois: '', tva: '', acompte: '', delai: '', style: '', anciensDevis: '' }
 
 export default function Questionnaire() {
   const navigate = useNavigate()
@@ -47,6 +48,7 @@ export default function Questionnaire() {
       return Array.isArray(v) ? v.length === 0 : v === undefined || String(v).trim() === ''
     })
     if (a.siret && a.siret.replace(/\s/g, '').length !== 14) miss.push({ k: 'siret', label: 'SIRET (14 chiffres)' })
+    if (a.metiers.includes('Autre') && !a.metierAutre.trim()) miss.unshift({ k: 'metierAutre', label: 'Votre métier (Autre)' })
     setMissing(miss.map((q) => q.k))
     if (miss.length) {
       notify('Il manque ' + miss.length + ' réponse' + (miss.length > 1 ? 's' : '') + ' obligatoire' + (miss.length > 1 ? 's' : '') + '.')
@@ -58,7 +60,10 @@ export default function Questionnaire() {
       }, 0)
       return
     }
-    saveEntreprise({ ...a, tauxHoraire: Number(a.tauxHoraire), deplacement: Number(a.deplacement) })
+    // « Autre » est remplacé par le métier saisi : c'est lui qui est transmis à l'IA (devis, prix du marché).
+    const { metierAutre, ...reste } = a
+    const metiers = a.metiers.filter((m) => m !== 'Autre').concat(a.metiers.includes('Autre') ? [metierAutre.trim().slice(0, 60)] : [])
+    saveEntreprise({ ...reste, metiers, tauxHoraire: Number(a.tauxHoraire), deplacement: Number(a.deplacement) })
     notify('C’est réglé ! Bienvenue sur EasyFact.')
     navigate('/app')
   }
@@ -91,6 +96,15 @@ export default function Questionnaire() {
                 ))}
               </div>
               {err(q.k) && <span className="error" role="alert">Cette réponse est obligatoire.</span>}
+              {q.k === 'metiers' && a.metiers.includes('Autre') && (
+                <div className="field">
+                  <label htmlFor="metierAutre">Précisez votre métier <span className="req">*</span></label>
+                  <input id="metierAutre" className="input" maxLength={60} placeholder="Ex. : ébéniste, plaquiste, serrurier…" value={a.metierAutre}
+                    onChange={(e) => setA({ ...a, metierAutre: e.target.value })} style={err('metierAutre') ? { borderColor: 'var(--danger)' } : undefined} />
+                  {err('metierAutre') && <span className="error">Indiquez votre métier.</span>}
+                  <p className="muted small">L’IA s’en sert pour comprendre vos demandes et choisir l’index de prix du marché le plus proche.</p>
+                </div>
+              )}
             </fieldset>
           ))}
         </section>

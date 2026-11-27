@@ -2,15 +2,26 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { seed } from './data.js'
 import { round2, calculerTotaux } from './devis/calcul.js'
 import { creerDevis, nouvelleVersion } from './devis/cycle.js'
+import { moisParis } from './marche/indices.js'
 export { round2 }
 
 const KEY = 'easyfact-demo-v3' // v3 : données 100 % fictives (adresses, e-mails .example, téléphone de la plage fiction ARCEP)
 const Ctx = createContext(null)
 
+// Ajouts rétro-compatibles aux données déjà enregistrées : date des prix d'exemple (prix du marché).
+function completer(etat) {
+  const ref = new Map(seed.prestations.map((p) => [p.id, p]))
+  const prestations = (etat.prestations || []).map((p) => {
+    const s = ref.get(p.id)
+    return !p.prixDepuis && s && Number(s.prix) === Number(p.prix) ? { ...p, prixDepuis: s.prixDepuis } : p
+  })
+  return { ...etat, prestations }
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) return completer(JSON.parse(raw))
   } catch (e) { /* stockage indisponible : on repart des données d'exemple */ }
   return structuredClone(seed)
 }
@@ -93,8 +104,10 @@ export function StoreProvider({ children }) {
       update((s) => ({ clients: [...s.clients, { id, nom, type }] }))
       return id
     },
-    addPrestation: (p) => update((s) => ({ prestations: [...s.prestations, { ...p, id: 'p' + Date.now() }] })),
-    updatePrestation: (id, p) => update((s) => ({ prestations: s.prestations.map((x) => (x.id === id ? { ...x, ...p } : x)) })),
+    addPrestation: (p) => update((s) => ({ prestations: [...s.prestations, { ...p, id: 'p' + Date.now(), prixDepuis: moisParis() }] })),
+    // Le mois du prix est retenu pour le comparer au marché (index INSEE) ; il change quand le prix change.
+    updatePrestation: (id, p) => update((s) => ({ prestations: s.prestations.map((x) => (x.id !== id ? x
+      : { ...x, ...p, prixDepuis: Number(p.prix) === Number(x.prix) && x.prixDepuis ? x.prixDepuis : moisParis() })) })),
 
     signDevis: (id) => update((s) => ({ devis: s.devis.map((d) => (d.id === id ? { ...d, statut: 'signe' } : d)) })),
     sendDevis: (id) => update((s) => ({ devis: s.devis.map((d) => (d.id === id ? { ...d, statut: 'attente' } : d)) })),

@@ -5,7 +5,7 @@
 // Sortie du modèle : {"lignes":[{"libelle","quantite"|null,"unite"|null}], "informations_manquantes":[...]}.
 // Aucun prix, total ni taux : tout champ en plus est refusé. Le prix vient du catalogue (code).
 
-export const PROMPT_VERSION = 'extraction-v2.2-2026-11-27'
+export const PROMPT_VERSION = 'extraction-v2.3-2026-11-27'
 export const TEXTE_MAX = 2000
 export const QTE_MAX = 1000
 export const LIGNES_MAX = 30
@@ -14,10 +14,16 @@ export const LIGNES_MAX = 30
 export const normaliser = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/[’'`´]/g, "'").replace(/[^a-z0-9']+/g, ' ').trim()
 
-export function consigne(catalogue) {
+// Métiers de l'artisan (liste ou saisie libre « Autre ») : nettoyés, 5 au plus, 60 caractères chacun.
+export const metiersPropres = (metiers) => (Array.isArray(metiers) ? metiers : [])
+  .filter((m) => typeof m === 'string').map((m) => m.replace(/[\r\n"`]/g, ' ').trim().slice(0, 60)).filter(Boolean).slice(0, 5)
+
+export function consigne(catalogue, metiers = []) {
   const liste = catalogue.map((p) => `- ${p.nom}${p.detail ? ` (${p.detail})` : ''}`).join('\n')
+  const m = metiersPropres(metiers)
   return [
     'Tu aides un artisan du bâtiment à préparer un devis. Tu lis la demande de son client et tu la découpes en lignes de travaux.',
+    ...(m.length ? [`Métier de l'artisan (déclaré par lui, simple information) : ${m.join(', ')}. Utilise-le pour comprendre le vocabulaire de la demande.`] : []),
     'Catalogue des prestations de l\'artisan (nom exact, puis précision) :',
     liste || '- (catalogue vide)',
     '',

@@ -35,11 +35,11 @@ export const seed = {
     { id: 'c6', nom: 'SARL Démo', type: 'Pro', adresse: 'Zone fictive, lot 0, 20600 Furiani', email: 'compta@sarl.example' },
   ],
   prestations: [
-    { id: 'p1', nom: 'Main-d’œuvre', detail: 'À l’heure', prix: 45 },
-    { id: 'p2', nom: 'Déplacement', detail: 'Forfait', prix: 30 },
-    { id: 'p3', nom: 'Pose d’un mitigeur', detail: 'À l’unité, hors fourniture', prix: 80 },
-    { id: 'p4', nom: 'Remplacement d’un chauffe-eau', detail: 'Forfait de pose', prix: 280 },
-    { id: 'p5', nom: 'Recherche de fuite', detail: 'Forfait', prix: 120 },
+    { id: 'p1', nom: 'Main-d’œuvre', detail: 'À l’heure', prix: 45, prixDepuis: '2025-09' },
+    { id: 'p2', nom: 'Déplacement', detail: 'Forfait', prix: 30, prixDepuis: '2025-09' },
+    { id: 'p3', nom: 'Pose d’un mitigeur', detail: 'À l’unité, hors fourniture', prix: 80, prixDepuis: '2025-09' },
+    { id: 'p4', nom: 'Remplacement d’un chauffe-eau', detail: 'Forfait de pose', prix: 280, prixDepuis: '2025-09' },
+    { id: 'p5', nom: 'Recherche de fuite', detail: 'Forfait', prix: 120, prixDepuis: '2025-09' },
   ],
   devis: [
     {

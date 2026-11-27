@@ -22,7 +22,7 @@ for (const c of cas) {
   let fetchFn = fetch
   if (c.reponseSimulee) { let i = 0; fetchFn = async () => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content: c.reponseSimulee[i++] } }] }) }) }
   const t0 = Date.now()
-  const r = await extraireTravaux(c.texte, catalogue, { cle, fetchFn })
+  const r = await extraireTravaux(c.texte, catalogue, { cle, fetchFn, metiers: ['Plombier'] })
   const ms = Date.now() - t0
   for (const u of r.usages || []) { tokIn += u.prompt_tokens || 0; tokOut += u.completion_tokens || 0 }
   if (r.detail && !detailAffiche) { console.log('Message OVH :', r.detail); messageOvh = r.detail; detailAffiche = true }

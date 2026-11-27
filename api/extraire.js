@@ -6,7 +6,7 @@
 // Ne pas l'activer en production publique (voir EXPLOITATION.md).
 import { extraireTravaux, MODELE, PROMPT_VERSION } from '../src/devis/appelModele.js'
 import { masquer } from '../src/devis/masquage.js'
-import { TEXTE_MAX } from '../src/devis/extraction.js'
+import { TEXTE_MAX, metiersPropres } from '../src/devis/extraction.js'
 
 const catalogueValide = (c) => Array.isArray(c) && c.length > 0 && c.length <= 100 &&
   c.every((p) => p && typeof p.id === 'string' && typeof p.nom === 'string' && p.id.length < 40 && p.nom.length < 120)
@@ -17,13 +17,13 @@ export default async function handler(req, res) {
   const cle = process.env.OVH_AI_ENDPOINTS_ACCESS_TOKEN
   if (!cle) return res.status(503).json({ desactive: true, erreur: 'IA non configurée' })
 
-  const { texte, catalogue } = req.body || {}
+  const { texte, catalogue, metiers } = req.body || {}
   if (typeof texte !== 'string' || texte.length > TEXTE_MAX * 2 || !catalogueValide(catalogue)) return res.status(400).json({ erreur: 'requête invalide' })
   const cat = catalogue.map((p) => ({ id: p.id, nom: p.nom, detail: typeof p.detail === 'string' ? p.detail.slice(0, 80) : '' }))
 
   const debut = Date.now()
   // Deuxième passe de masquage côté serveur (e-mails, téléphones, adresses) ; les noms sont masqués par le navigateur.
-  const r = await extraireTravaux(masquer(texte), cat, { cle })
+  const r = await extraireTravaux(masquer(texte), cat, { cle, metiers: metiersPropres(metiers) })
   const tokens = (r.usages || []).reduce((s, u) => ({ entree: s.entree + (u.prompt_tokens || 0), sortie: s.sortie + (u.completion_tokens || 0) }), { entree: 0, sortie: 0 })
   console.log(JSON.stringify({ evt: 'extraire', modele: MODELE, prompt: PROMPT_VERSION, ok: r.ok, erreur: r.ok ? null : r.erreur, tentatives: r.tentatives, ms: Date.now() - debut, tokens }))
   if (!r.ok) {

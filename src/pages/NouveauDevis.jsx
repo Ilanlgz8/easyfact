@@ -5,11 +5,13 @@ import LinesEditor from '../components/LinesEditor.jsx'
 import BoutonDictee from '../components/BoutonDictee.jsx'
 import { useStore } from '../store.jsx'
 import { extraireLignes } from '../ia.js'
+import { useMarche } from '../marche/useMarche.js'
 import { blocagesValidation, ligneChiffree } from '../devis/calcul.js'
 
 export default function NouveauDevis() {
   const navigate = useNavigate()
-  const { clients, devis, prestations, client, addClient, validerDevis, nouvelleVersionDevis, notify } = useStore()
+  const { clients, devis, prestations, client, addClient, validerDevis, nouvelleVersionDevis, notify, entreprise, saveEntreprise } = useStore()
+  const marche = useMarche(entreprise, saveEntreprise)
   const [params] = useSearchParams()
   // Mode « Modifier » : on ouvre directement l'étape de vérification avec les lignes du devis
   const edited = devis.find((d) => d.id === params.get('edit'))
@@ -31,7 +33,7 @@ export default function NouveauDevis() {
     enCours.current = true
     setLoading(true)
     const objet = texte.trim() ? texte.trim().charAt(0).toUpperCase() + texte.trim().slice(1) : 'Travaux'
-    const r = await extraireLignes(texte, prestations, clients.map((c) => c.nom))
+    const r = await extraireLignes(texte, prestations, clients.map((c) => c.nom), entreprise.metiers || [])
     enCours.current = false
     const lignes = r.mode === 'ia' ? r.lignes : [{ label: '', qte: 1, prix: null, custom: true }]
     setInfoIA(r)
@@ -133,7 +135,14 @@ export default function NouveauDevis() {
               {infoIA?.mode === 'ia' && <p className="small muted" style={{ marginTop: 6 }}>Lignes proposées par l’IA à partir de votre description. Vérifiez-les.</p>}
               {infoIA?.mode === 'manuel' && <p className="small" style={{ marginTop: 6, color: '#B45309' }}>{infoIA.raison} Saisissez les lignes vous-même.</p>}
               {infoIA?.remarques?.length > 0 && <ul className="small muted" style={{ marginTop: 6 }}>{infoIA.remarques.map((r, i) => <li key={i}>{r}</li>)}</ul>}
-              <LinesEditor doc={doc} setDoc={setDoc} catalogue={prestations} />
+              <LinesEditor doc={doc} setDoc={setDoc} catalogue={prestations} marche={marche} />
+              {marche && (
+                <p className="small muted" style={{ marginTop: 10 }}>
+                  Prix du marché : index officiel INSEE {marche.code} « {marche.libelle} »
+                  {marche.origine === 'ia' ? `, choisi par l’IA pour votre métier « ${marche.metier} »` : marche.origine === 'defaut' ? ' (index général, faute de métier reconnu)' : ''}.
+                  {' '}Il mesure l’évolution des coûts du métier (matériaux, salaires, énergie), pas un prix exact : à vous de décider.
+                </p>
+              )}
             </section>
             <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <label className="check"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />J’ai vérifié les lignes, les prix et le taux de TVA, et je valide ce devis</label>

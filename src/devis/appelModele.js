@@ -16,7 +16,7 @@ export { PROMPT_VERSION }
 
 const pause = (ms) => new Promise((r) => setTimeout(r, ms))
 
-async function unAppel(texte, catalogue, cle, fetchFn) {
+async function unAppel(texte, catalogue, cle, fetchFn, metiers) {
   const rep = await fetchFn(URL_OVH, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cle}` },
@@ -26,7 +26,7 @@ async function unAppel(texte, catalogue, cle, fetchFn) {
       max_tokens: MAX_TOKENS,
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: consigne(catalogue) },
+        { role: 'system', content: consigne(catalogue, metiers) },
         { role: 'user', content: `Demande du client :\n"""${texte}"""` },
       ],
     }),
@@ -44,14 +44,14 @@ async function unAppel(texte, catalogue, cle, fetchFn) {
   return { ...v, usage }
 }
 
-export async function extraireTravaux(texte, catalogue, { cle, fetchFn = fetch, attendre = pause } = {}) {
+export async function extraireTravaux(texte, catalogue, { cle, fetchFn = fetch, attendre = pause, metiers = [] } = {}) {
   const t = String(texte || '').trim().slice(0, TEXTE_MAX)
   if (!t) return { ok: false, erreur: 'texte vide', tentatives: 0, usages: [] }
   const usages = []
   let dernier
   for (let i = 1; i <= 2; i++) {
     try {
-      dernier = await unAppel(t, catalogue, cle, fetchFn)
+      dernier = await unAppel(t, catalogue, cle, fetchFn, metiers)
     } catch (e) {
       dernier = { ok: false, erreur: e?.name === 'TimeoutError' ? 'délai dépassé' : 'erreur réseau' }
     }

@@ -24,6 +24,7 @@ Accès direct au compte de démo : http://localhost:5173/#/demo
 | `OVH_AI_ENDPOINTS_ACCESS_TOKEN` | clé OVH, côté serveur uniquement | vide |
 | `VITE_DICTEE_ACTIVE` | `true` : bouton « Dicter » (Chrome, Edge) | désactivé |
 | `VITE_CHATBOT_SIMULE` | `true` : assistant simulé, sans IA, hors production | désactivé |
+| `MARCHE_ACTIF` | `true` : prix du marché pendant le devis (index INSEE du bâtiment, gratuit) | désactivé |
 
 Après un changement du `.env`, relancer `npm run dev`.
 
