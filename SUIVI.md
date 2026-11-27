@@ -14,7 +14,7 @@ Voir la section « Lots » : premier lot non terminé.
 | Base de données, sauvegarde, restauration | ABSENT | idem |
 | Calculs HT / TVA / TTC | TESTÉ | en centimes entiers, ordre et arrondis documentés dans src/devis/calcul.js ; écran et PDF utilisent les mêmes fonctions |
 | TVA sans défaut, choix par l'artisan | TESTÉ | `npm test` + navigateur |
-| Extraction IA | PARTIEL | voir lot 5 |
+| Extraction IA | PARTIEL | critère 95 % non atteint (cas 3 : « déplacement compris » omis) ; aucune ligne de catalogue ni quantité inventée sur le dernier passage ; quota 20/jour compté par navigateur seulement |
 | Chatbot | ABSENT | lot 8 (simulé) |
 | Double clic / numérotation | TESTÉ | clé d’idempotence, src/devis/cycle.js (valable pour un navigateur) |
 | Versions et copie figée | TESTÉ | entreprise et client copiés à la validation ; anciens devis d’exemple sans copie |
@@ -27,7 +27,7 @@ Voir la section « Lots » : premier lot non terminé.
 | 1-2 | Tests de non-régression, double clic | TESTÉ : tests/cycle.test.js + triple clic en navigateur = 1 devis |
 | 3 | Versions de devis figées | TESTÉ : v2 créée, v1 « remplacée » consultable, conflit affiché si on modifie une version remplacée |
 | 4 | Centimes, « Autre taux » de TVA | TESTÉ : 52 tests ; navigateur 1,5 × 12,05 = 18,08 €, TVA 2,1 % = 0,38 €, TTC 18,46 € |
-| 5 | Extraction IA conforme + 20 cas | à faire |
+| 5 | Extraction IA conforme + 20 cas | PARTIEL : schéma strict, masquage, 429, quota local, prompt versionné TESTÉS ; 20 cas réels : 19/20, 16/17 lignes exactes (94 % < 95 %) après 2 corrections → IA laissée désactivée par défaut |
 | 6 | Corrections d'expérience | à faire |
 | 7 | Aide, guides, scénario de démo | à faire |
 | 8 | Chatbot simulé | à faire |
@@ -43,6 +43,8 @@ Voir la section « Lots » : premier lot non terminé.
 | 27/11/2026 | Clé en main : aide courte seulement | réponse question 6 |
 | 27/11/2026 | Chatbot simulé (sans IA), interrupteur dédié, interdit en production | pas de base pour la mémoire ; réponse question 7 |
 | 27/11/2026 | Commit par lot, sans push | réponse question 9 |
+| 27/11/2026 | Prompt d’extraction v2.2 ; 2 corrections utilisées (règle : 2 max) | cas 11 : WC rattaché à tort au chauffe-eau ; corrigé |
+| 27/11/2026 | Quantité inconnue = null (plus de « 1 » par défaut) | « aucune quantité inventée » |
 | 27/11/2026 | Budget de test IA : 5 € au total malgré 200 € de crédits OVH | règle du prompt ; dépensé avant ce jour : ≈ 0 € |
 
 ## Questions ouvertes
@@ -60,3 +62,5 @@ Voir la section « Lots » : premier lot non terminé.
 | Date | Appels | Coût estimé |
 |---|---|---|
 | 26-27/11/2026 | ≈ 50 refusés (401, non facturés) + 1 réussi | < 0,001 € |
+| 27/11/2026 | 3 passages des 20 cas (≈ 55 appels) + 1 essai navigateur | ≈ 0,004 € estimé (0,09 / 0,28 € par M tokens) |
+| **Total** | | **≈ 0,005 € sur 5 €** |

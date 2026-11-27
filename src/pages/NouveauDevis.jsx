@@ -24,10 +24,15 @@ export default function NouveauDevis() {
 
   // IA : lignes proposées par le modèle, prix repris du catalogue. TVA jamais préremplie.
   const [infoIA, setInfoIA] = useState(null)
+  const enCours = useRef(false)
   const toStep2 = async () => {
+    // Double clic sur « Continuer » : un seul appel à l'IA.
+    if (enCours.current) return
+    enCours.current = true
     setLoading(true)
-    const objet = texte.trim() ? texte.trim().charAt(0).toUpperCase() + texte.trim().slice(1) : 'Travaux de plomberie'
-    const r = await extraireLignes(texte, prestations)
+    const objet = texte.trim() ? texte.trim().charAt(0).toUpperCase() + texte.trim().slice(1) : 'Travaux'
+    const r = await extraireLignes(texte, prestations, clients.map((c) => c.nom))
+    enCours.current = false
     const lignes = r.mode === 'ia' ? r.lignes : [{ label: '', qte: 1, prix: null, custom: true }]
     setInfoIA(r)
     setDoc({ clientId, objet, tva: null, lignes })
