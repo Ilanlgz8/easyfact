@@ -12,7 +12,8 @@ export default function BoutonDictee({ valeur, onChange }) {
 
   useEffect(() => () => rec.current?.abort(), [])
 
-  if (!Reconnaissance) return null
+  // Interrupteur : VITE_DICTEE_ACTIVE=true dans .env pour l'afficher (désactivée par défaut).
+  if (!Reconnaissance || import.meta.env.VITE_DICTEE_ACTIVE !== 'true') return null
 
   const demarrer = () => {
     setErreur('')
