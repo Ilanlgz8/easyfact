@@ -3,7 +3,12 @@
 Dernière mise à jour : 27/11/2026. Branche : `feat/ia-devis-plomberie` (PR Ilanlgz8/easyfact#1).
 
 ## Prochaine action
-Voir la section « Lots » : premier lot non terminé.
+Tous les lots du plan sont faits. Décision attendue : relecture, push de la branche, puis éventuel « GO PROD » (IA désactivée). Avant toute donnée réelle : base + comptes (voir Dette).
+
+## Décision de livraison (27/11/2026)
+- **Parcours de devis : PRÊT AVEC RÉSERVES NON BLOQUANTES pour la démonstration** ; **BLOQUÉ pour un usage réel** (pas de comptes ni de base, pas de sauvegarde).
+- **Extraction IA : laissée désactivée par défaut** (94 % < 95 % après 2 corrections) ; activable en local pour la démo.
+- **Chatbot : PRÊT pour la démonstration en mode simulé uniquement** ; le vrai chatbot IA n’est pas fait.
 
 ## État par fonctionnalité
 États : TESTÉ, CODÉ NON TESTÉ, PARTIEL, ABSENT, BLOQUÉ, NON VÉRIFIABLE.
@@ -15,7 +20,7 @@ Voir la section « Lots » : premier lot non terminé.
 | Calculs HT / TVA / TTC | TESTÉ | en centimes entiers, ordre et arrondis documentés dans src/devis/calcul.js ; écran et PDF utilisent les mêmes fonctions |
 | TVA sans défaut, choix par l'artisan | TESTÉ | `npm test` + navigateur |
 | Extraction IA | PARTIEL | critère 95 % non atteint (cas 3 : « déplacement compris » omis) ; aucune ligne de catalogue ni quantité inventée sur le dernier passage ; quota 20/jour compté par navigateur seulement |
-| Chatbot | ABSENT | lot 8 (simulé) |
+| Chatbot (simulé, sans IA) | TESTÉ | derrière VITE_CHATBOT_SIMULE, jamais actif en build de production ; mémoire dans le navigateur ; vrai chatbot IA : ABSENT (nécessite une base) |
 | Double clic / numérotation | TESTÉ | clé d’idempotence, src/devis/cycle.js (valable pour un navigateur) |
 | Versions et copie figée | TESTÉ | entreprise et client copiés à la validation ; anciens devis d’exemple sans copie |
 | Dictée vocale | CODÉ NON TESTÉ (Chrome OK à la main) | derrière `VITE_DICTEE_ACTIVE`, désactivée par défaut |
@@ -30,7 +35,7 @@ Voir la section « Lots » : premier lot non terminé.
 | 5 | Extraction IA conforme + 20 cas | PARTIEL : schéma strict, masquage, 429, quota local, prompt versionné TESTÉS ; 20 cas réels : 19/20, 16/17 lignes exactes (94 % < 95 %) après 2 corrections → IA laissée désactivée par défaut |
 | 6 | Corrections d'expérience | TESTÉ (focus questionnaire vérifié ; confirmation d'annulation non jouée en automatique) : focus 1re erreur du questionnaire, catalogue en saisie manuelle (lot 4), confirmation d'annulation, textes accueil et questionnaire, liens morts remplacés |
 | 7 | Aide, guides, scénario de démo | TESTÉ : page /aide (8 sections), GUIDE-ARTISAN.md, EXPLOITATION.md, DEMO.md (5 min + secours + script vidéo) |
-| 8 | Chatbot simulé | à faire |
+| 8 | Chatbot simulé | TESTÉ : 16 tests (homonymes, dates Paris, info absente, source, ancien prix, hors périmètre, injection stockée, écriture refusée, conversations) ; navigateur : sources réelles, HTML échappé, mémoire après rechargement, plein écran à 390 px |
 
 ## Décisions
 | Date | Décision | Raison |
@@ -56,6 +61,8 @@ Voir la section « Lots » : premier lot non terminé.
 - Pas de serveur : quotas, droits, numérotation et verrous ne valent que pour un navigateur.
 - `/api/extraire` sans authentification ni quota serveur : garder `IA_ACTIVE=false` en production.
 - Factures : la TVA y est encore préremplie (20 % pro, 10 % particulier) ; écrans de factures non modifiés.
+- Mot de passe oublié, comptes, isolation, sauvegarde/restauration, journal des actions, test de charge : impossibles sans serveur.
+- Import CSV et export des données : non faits (hors choix « aide courte »).
 - Dépendances : `npm audit` signale vite (élevée, serveur de dev) et react-router (modérée).
 
 ## Dépense IA

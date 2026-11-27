@@ -1,5 +1,6 @@
 import { Link, NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
 import { useStore } from '../store.jsx'
+import Assistant, { assistantActif } from './Assistant.jsx'
 
 export function Logo({ to = '/' }) {
   // to = null : logo seul (déjà dans un lien).
@@ -57,6 +58,7 @@ export function AppLayout() {
         <Outlet />
       </main>
       <Toast />
+      {assistantActif && <Assistant />}
     </div>
   )
 }
