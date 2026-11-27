@@ -23,7 +23,7 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | Chatbot (simulé, sans IA) | TESTÉ | derrière VITE_CHATBOT_SIMULE, jamais actif en build de production ; mémoire dans le navigateur ; vrai chatbot IA : ABSENT (nécessite une base) |
 | Double clic / numérotation | TESTÉ | clé d’idempotence, src/devis/cycle.js (valable pour un navigateur) |
 | Versions et copie figée | TESTÉ | entreprise et client copiés à la validation ; anciens devis d’exemple sans copie |
-| Dictée vocale | CODÉ, chaîne serveur TESTÉE | enregistrement dans le navigateur (Edge, Brave, Chrome) + transcription Whisper OVH via /api/transcrire ; 7 tests ; appel réel OK (silence filtré) ; voix réelle à tester par l’équipe ; interrupteurs VITE_DICTEE_ACTIVE + IA_ACTIVE |
+| Dictée vocale | TESTÉ (voix réelle dans Edge par l’équipe, 27/11/2026) | enregistrement dans le navigateur (Edge, Brave, Chrome) + transcription Whisper OVH via /api/transcrire ; 7 tests ; appel réel OK (silence filtré) ; interrupteurs VITE_DICTEE_ACTIVE + IA_ACTIVE |
 
 ## Lots
 | Lot | Contenu | État |
