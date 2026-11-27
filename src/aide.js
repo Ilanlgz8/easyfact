@@ -30,7 +30,7 @@ export const SECTIONS_AIDE = [
     'Ceci est une démonstration : comptes, clients, devis et montants sont fictifs. N’y saisissez pas de vraies données.',
     'Les données restent dans ce navigateur. « Réinitialiser la démo » (menu, en bas) remet les données d’exemple.',
     'Si l’assistant IA est activé, la description des travaux est envoyée au service OVHcloud AI Endpoints, après remplacement des noms de vos clients, e-mails, téléphones et adresses repérés. Ce filtrage n’est pas une anonymisation complète. Le nom du client choisi et vos prix ne sont pas envoyés.',
-    'Prix du marché (si activé) : EasyFact lit les index officiels du bâtiment publiés chaque mois par l’INSEE. Seul le code de l’index est demandé à l’INSEE : rien sur vous ni vos clients. Votre métier, s’il n’est pas dans la liste, est envoyé à OVHcloud pour choisir l’index le plus proche.',
+    'Prix du marché (si activé) : EasyFact lit les index officiels du bâtiment publiés chaque mois par l’INSEE. Les matériaux suivent l’indice de prix de chaque matériau (bois, carrelage, câbles…). Seuls les codes des indices sont demandés à l’INSEE : rien sur vous ni vos clients. Votre métier, s’il n’est pas dans la liste, est envoyé à OVHcloud pour choisir l’index le plus proche et proposer un catalogue de départ (sans prix).',
     'La dictée vocale (si activée) envoie l’enregistrement au service de transcription OVHcloud (Whisper, Europe). EasyFact ne conserve ni l’audio ni le texte transcrit, en dehors du champ où il s’écrit.',
   ] },
   { id: 'support', titre: 'Aide et contact', texte: [

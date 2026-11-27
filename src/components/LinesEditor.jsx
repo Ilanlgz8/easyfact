@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { euros, round2, totaux } from '../store.jsx'
 import { TAUX_TVA, totalLigne, ligneChiffree } from '../devis/calcul.js'
-import { suggererPrix, moisLisible } from '../marche/indices.js'
+import { suggererPrix, moisLisible, evolution } from '../marche/indices.js'
 
 // Saisie d'un nombre décimal (virgule ou point, 2 décimales au plus). On garde le texte tapé
 // tel quel (« 12,0 » ne devient pas « 12 » en cours de frappe) ; '' = non renseigné (null).
@@ -12,11 +12,18 @@ const affiche = (v) => (v === null || v === undefined ? '' : String(v).replace('
 // Éditeur de lignes partagé par « Nouveau devis » et « Nouvelle facture »
 // Suggestion « prix du marché » pour une ligne : seulement si elle reprend une prestation du catalogue
 // à son prix du catalogue (l'artisan n'y a pas encore touché) et que la date de ce prix est connue.
+// Index utilisé : celui de l'élément du catalogue (matériau), sinon celui du métier.
 function suggestionMarche(l, catalogue, marche) {
-  if (!marche?.serie) return null
+  if (!marche?.series) return null
   const p = catalogue.find((x) => x.nom === l.label && x.prixDepuis)
-  if (!p || l.prix === null || Number(l.prix) !== Number(p.prix)) return null
-  return suggererPrix(p.prix, marche.serie, p.prixDepuis)
+  if (!p || p.prix === null || l.prix === null || Number(l.prix) !== Number(p.prix)) return null
+  const s = marche.series[p.indice] || marche.series[marche.defaut]
+  if (!s) return null
+  const base = { code: s.code, libelle: s.libelle, materiau: p.type === 'materiau' }
+  const sg = suggererPrix(p.prix, s.serie, p.prixDepuis)
+  if (sg) return { ...sg, ...base }
+  const ev = evolution(s.serie, p.prixDepuis)
+  return ev && { ...ev, ...base, stable: true }
 }
 
 export default function LinesEditor({ doc, setDoc, acomptePct = 0, catalogue = [], marche = null }) {
@@ -37,7 +44,7 @@ export default function LinesEditor({ doc, setDoc, acomptePct = 0, catalogue = [
   const ajouterDuCatalogue = (id) => {
     const p = catalogue.find((x) => x.id === id)
     if (!p) return
-    setDoc({ ...doc, lignes: [...doc.lignes.filter((l) => String(l.label || '').trim() || ligneChiffree(l)), { label: p.nom, qte: 1, prix: Number(p.prix) }] })
+    setDoc({ ...doc, lignes: [...doc.lignes.filter((l) => String(l.label || '').trim() || ligneChiffree(l)), { label: p.nom, qte: 1, prix: p.prix === null || p.prix === undefined ? null : Number(p.prix) }] })
   }
 
   return (
@@ -68,10 +75,16 @@ export default function LinesEditor({ doc, setDoc, acomptePct = 0, catalogue = [
           {(() => {
             const sg = suggestionMarche(l, catalogue, marche)
             if (!sg) return null
+            const pct = `${sg.ecartPct > 0 ? '+' : ''}${String(sg.ecartPct).replace('.', ',')} %`
+            if (sg.stable) return (
+              <p className="small muted" role="note" style={{ flexBasis: '100%' }}>
+                {sg.materiau ? 'Prix du matériau' : 'Marché'} ({sg.libelle}, INSEE) : stable ({pct} entre {moisLisible(sg.moisRef)} et {moisLisible(sg.moisDernier)}). Votre prix reste à jour.
+              </p>
+            )
             return (
               <div className="small marche" role="note" style={{ flexBasis: '100%' }}>
                 <span>
-                  Marché ({marche.code}, {marche.libelle}) : <strong>{sg.ecartPct > 0 ? '+' : ''}{String(sg.ecartPct).replace('.', ',')} %</strong> entre {moisLisible(sg.moisRef)} (date de votre prix) et {moisLisible(sg.moisDernier)}.
+                  {sg.materiau ? 'Prix du matériau' : 'Marché'} ({sg.libelle}, INSEE) : <strong>{sg.ecartPct > 0 ? '+' : ''}{String(sg.ecartPct).replace('.', ',')} %</strong> entre {moisLisible(sg.moisRef)} (date de votre prix) et {moisLisible(sg.moisDernier)}.
                   {' '}Prix suggéré : <strong>{euros(sg.prixSuggere)}</strong> au lieu de {euros(l.prix)}.
                 </span>
                 <button type="button" className="btn btn-outline btn-sm" onClick={() => setLine(i, { prix: sg.prixSuggere })}>Appliquer</button>
@@ -86,7 +99,7 @@ export default function LinesEditor({ doc, setDoc, acomptePct = 0, catalogue = [
           Ajouter une prestation de mon catalogue
           <select className="input" value="" onChange={(e) => ajouterDuCatalogue(e.target.value)}>
             <option value="">Choisir une prestation…</option>
-            {catalogue.map((p) => <option key={p.id} value={p.id}>{p.nom} — {euros(p.prix)}</option>)}
+            {catalogue.map((p) => <option key={p.id} value={p.id}>{p.nom} — {p.prix === null || p.prix === undefined ? 'prix à saisir' : euros(p.prix)}</option>)}
           </select>
         </label>
       )}

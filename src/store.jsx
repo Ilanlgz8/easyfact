@@ -3,6 +3,7 @@ import { seed } from './data.js'
 import { round2, calculerTotaux } from './devis/calcul.js'
 import { creerDevis, nouvelleVersion } from './devis/cycle.js'
 import { moisParis } from './marche/indices.js'
+import { catalogueEntreprise, exemplesEntreprise } from './metiers/catalogues.js'
 export { round2 }
 
 const KEY = 'easyfact-demo-v3' // v3 : données 100 % fictives (adresses, e-mails .example, téléphone de la plage fiction ARCEP)
@@ -98,6 +99,14 @@ export function StoreProvider({ children }) {
     enterDemo: () => update(() => ({ user: { prenom: 'Compte test', email: 'test@demo.example' }, onboarded: true })),
     logout: () => update(() => ({ user: null })),
     saveEntreprise: (data) => update((s) => ({ entreprise: { ...s.entreprise, ...data }, onboarded: true })),
+    // Fin du questionnaire : catalogue et exemples du métier. Seulement au premier passage (rien n'est écrasé
+    // une fois l'artisan installé). `elementsIA` : noms proposés par l'IA pour un métier « Autre » (sans prix).
+    demarrerActivite: (data, elementsIA = []) => update((s) => {
+      const entreprise = { ...s.entreprise, ...data }
+      if (s.onboarded) return { entreprise }
+      const prestations = catalogueEntreprise(entreprise, elementsIA)
+      return { entreprise, prestations, ...exemplesEntreprise(entreprise, prestations), onboarded: true }
+    }),
 
     addClient: (nom, type) => {
       const id = 'c' + Date.now()
@@ -107,7 +116,7 @@ export function StoreProvider({ children }) {
     addPrestation: (p) => update((s) => ({ prestations: [...s.prestations, { ...p, id: 'p' + Date.now(), prixDepuis: moisParis() }] })),
     // Le mois du prix est retenu pour le comparer au marché (index INSEE) ; il change quand le prix change.
     updatePrestation: (id, p) => update((s) => ({ prestations: s.prestations.map((x) => (x.id !== id ? x
-      : { ...x, ...p, prixDepuis: Number(p.prix) === Number(x.prix) && x.prixDepuis ? x.prixDepuis : moisParis() })) })),
+      : { ...x, ...p, exemple: false, prixDepuis: Number(p.prix) === Number(x.prix) && x.prixDepuis ? x.prixDepuis : moisParis() })) })),
 
     signDevis: (id) => update((s) => ({ devis: s.devis.map((d) => (d.id === id ? { ...d, statut: 'signe' } : d)) })),
     sendDevis: (id) => update((s) => ({ devis: s.devis.map((d) => (d.id === id ? { ...d, statut: 'attente' } : d)) })),
@@ -131,7 +140,15 @@ export function StoreProvider({ children }) {
     })),
     markPaid: (id) => update((s) => ({ factures: s.factures.map((f) => (f.id === id ? { ...f, statut: 'payee' } : f)) })),
 
-    resetDemo: () => setState({ ...structuredClone(seed), user: ref.current.user, onboarded: true }),
+    // Remise à zéro : données d'exemple du métier de l'entreprise (celles du plombier fictif pour le compte de démo).
+    resetDemo: () => {
+      const s = ref.current
+      const base = { ...structuredClone(seed), user: s.user, onboarded: true }
+      if (s.entreprise?.nom === seed.entreprise.nom) return setState(base)
+      const ia = (s.prestations || []).filter((p) => p.proposeParIA).map(({ nom, detail, type, indice }) => ({ nom, detail, type, indice }))
+      const prestations = catalogueEntreprise(s.entreprise, ia)
+      setState({ ...base, entreprise: s.entreprise, prestations, ...exemplesEntreprise(s.entreprise, prestations) })
+    },
   }
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>

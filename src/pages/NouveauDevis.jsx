@@ -11,7 +11,10 @@ import { blocagesValidation, ligneChiffree } from '../devis/calcul.js'
 export default function NouveauDevis() {
   const navigate = useNavigate()
   const { clients, devis, prestations, client, addClient, validerDevis, nouvelleVersionDevis, notify, entreprise, saveEntreprise } = useStore()
-  const marche = useMarche(entreprise, saveEntreprise)
+  const marche = useMarche(entreprise, saveEntreprise, prestations)
+  // Exemple de description adapté au métier : première prestation du catalogue (hors main-d'œuvre et déplacement).
+  const modele = prestations.find((p) => p.type === 'prestation' && !/^(Main-d|Déplacement)/.test(p.nom))
+  const exemple = modele ? `Ex. : ${modele.nom.toLowerCase()}, 2 h` : 'Ex. : décrivez les travaux, les quantités, la durée'
   const [params] = useSearchParams()
   // Mode « Modifier » : on ouvre directement l'étape de vérification avec les lignes du devis
   const edited = devis.find((d) => d.id === params.get('edit'))
@@ -113,7 +116,7 @@ export default function NouveauDevis() {
           <>
             <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <label htmlFor="travaux" style={{ fontWeight: 700, fontSize: 22 }}>Décrivez les travaux en quelques mots</label>
-              <textarea id="travaux" className="input" placeholder="Ex. : remplacement chauffe-eau 200 L, 2 h" value={texte} onChange={(e) => setTexte(e.target.value)} />
+              <textarea id="travaux" className="input" placeholder={exemple} value={texte} onChange={(e) => setTexte(e.target.value)} />
               <BoutonDictee valeur={texte} onChange={setTexte} />
               <label htmlFor="photos" style={{ fontWeight: 700, fontSize: 22 }}>Ajoutez des photos du chantier</label>
               <div className="dropzone"><input id="photos" type="file" accept="image/*" multiple onChange={(e) => setPhotos([...e.target.files].map((f) => f.name))} /></div>
@@ -138,9 +141,10 @@ export default function NouveauDevis() {
               <LinesEditor doc={doc} setDoc={setDoc} catalogue={prestations} marche={marche} />
               {marche && (
                 <p className="small muted" style={{ marginTop: 10 }}>
-                  Prix du marché : index officiel INSEE {marche.code} « {marche.libelle} »
+                  Prix du marché (source INSEE) : les matériaux suivent l’indice de prix de production de chaque matériau ;
+                  la main-d’œuvre et les poses suivent l’index du bâtiment {marche.defaut} « {marche.series[marche.defaut]?.libelle || ''} »
                   {marche.origine === 'ia' ? `, choisi par l’IA pour votre métier « ${marche.metier} »` : marche.origine === 'defaut' ? ' (index général, faute de métier reconnu)' : ''}.
-                  {' '}Il mesure l’évolution des coûts du métier (matériaux, salaires, énergie), pas un prix exact : à vous de décider.
+                  {' '}Ce sont des évolutions officielles, pas des prix exacts : à vous de décider.
                 </p>
               )}
             </section>

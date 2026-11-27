@@ -279,3 +279,5 @@ a.row-main:hover strong { text-decoration: underline; }
 /* Suggestion « prix du marché » (index INSEE) dans l'éditeur de lignes */
 .marche { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;
   background: var(--beige, #f6f1e7); border-radius: 8px; padding: 8px 10px; margin-top: 4px; }
+
+.tag-exemple { color: #B45309; }

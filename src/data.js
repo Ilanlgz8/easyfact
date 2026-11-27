@@ -1,6 +1,8 @@
 // Données fictives de démonstration (aucune vraie personne ni entreprise).
 // Chaque devis et chaque facture a ses lignes : les totaux sont recalculés à partir d'elles.
 
+import { catalogueEntreprise } from './metiers/catalogues.js'
+
 const L = (label, qte, prix) => ({ label, qte, prix })
 
 export const seed = {
@@ -34,13 +36,8 @@ export const seed = {
     { id: 'c5', nom: 'Mme Petit', type: 'Particulier', adresse: '25 rue Inventée, 20200 Bastia', email: 'petit@client.example' },
     { id: 'c6', nom: 'SARL Démo', type: 'Pro', adresse: 'Zone fictive, lot 0, 20600 Furiani', email: 'compta@sarl.example' },
   ],
-  prestations: [
-    { id: 'p1', nom: 'Main-d’œuvre', detail: 'À l’heure', prix: 45, prixDepuis: '2025-09' },
-    { id: 'p2', nom: 'Déplacement', detail: 'Forfait', prix: 30, prixDepuis: '2025-09' },
-    { id: 'p3', nom: 'Pose d’un mitigeur', detail: 'À l’unité, hors fourniture', prix: 80, prixDepuis: '2025-09' },
-    { id: 'p4', nom: 'Remplacement d’un chauffe-eau', detail: 'Forfait de pose', prix: 280, prixDepuis: '2025-09' },
-    { id: 'p5', nom: 'Recherche de fuite', detail: 'Forfait', prix: 120, prixDepuis: '2025-09' },
-  ],
+  // Catalogue du plombier fictif : le même que celui donné à un vrai plombier après le questionnaire.
+  prestations: catalogueEntreprise({ metiers: ['Plombier'], tauxHoraire: 45, deplacement: 30 }),
   devis: [
     {
       id: 'd25', numero: '025', clientId: 'c5', date: '2026-11-25', statut: 'pret', tva: 10,

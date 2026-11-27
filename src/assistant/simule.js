@@ -15,6 +15,7 @@ export const EXEMPLES = [
 ]
 
 const eur = (n) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0)
+const prixCat = (n) => (n === null || n === undefined ? 'prix à saisir' : eur(n) + ' HT')
 const dateFr = (iso) => {
   const [y, m, d] = iso.split('-').map(Number)
   return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d)))
@@ -86,9 +87,12 @@ export function repondre(message, { devis = [], clients = [], prestations = [], 
     const cherches = mots(message)
     const trouves = prestations.filter((p) => cherches.some((w) => mots(p.nom).some((x) => x.startsWith(w.slice(0, 5)) || w.startsWith(x.slice(0, 5)))))
     if (!trouves.length) return { texte: 'Je n’ai pas trouvé cette prestation dans votre catalogue (menu « Prestations »).' }
-    if (trouves.length > 1) return { texte: 'Plusieurs prestations correspondent. Laquelle ?\n' + trouves.map((p) => `• ${p.nom} : ${eur(p.prix)} HT`).join('\n'), sources: [{ type: 'catalogue', id: '', libelle: 'Catalogue' }] }
+    // Nom complet écrit dans la question (« pose d’un mitigeur ») : c'est celui-là, pas les noms voisins.
+    const complets = trouves.filter((p) => normaliser(message).includes(normaliser(p.nom)))
+    if (complets.length === 1) trouves.splice(0, trouves.length, complets[0])
+    if (trouves.length > 1) return { texte: 'Plusieurs prestations correspondent. Laquelle ?\n' + trouves.map((p) => `• ${p.nom} : ${prixCat(p.prix)}`).join('\n'), sources: [{ type: 'catalogue', id: '', libelle: 'Catalogue' }] }
     const p = trouves[0]
-    return { texte: `Votre prix catalogue pour « ${p.nom} » : ${eur(p.prix)} HT${p.detail ? ` (${p.detail})` : ''}. Un devis déjà validé garde le prix qu’il avait à sa validation.`, sources: [{ type: 'catalogue', id: p.id, libelle: 'Catalogue : ' + p.nom }] }
+    return { texte: `Votre prix catalogue pour « ${p.nom} » : ${prixCat(p.prix)}${p.detail ? ` (${p.detail})` : ''}. Un devis déjà validé garde le prix qu’il avait à sa validation.`, sources: [{ type: 'catalogue', id: p.id, libelle: 'Catalogue : ' + p.nom }] }
   }
 
   // Conversations passées sur un sujet (« de quoi avait-on parlé à propos de … »).

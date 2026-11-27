@@ -73,7 +73,7 @@ export async function extraireLignes(texte, prestations, nomsClients = [], metie
     const rep = await fetch('/api/extraire', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ texte: masquer(texte, nomsClients), catalogue: prestations.map(({ id, nom, detail }) => ({ id, nom, detail })), metiers }),
+      body: JSON.stringify({ texte: masquer(texte, nomsClients), catalogue: prestations.map(({ id, nom, detail, type }) => ({ id, nom, detail: [detail, type === 'materiau' ? 'matériau' : ''].filter(Boolean).join(', ') })), metiers }),
     })
     if (rep.status === 503 || rep.status === 404) return { mode: 'manuel', raison: 'L’assistant IA est désactivé.' }
     if (rep.status === 429) {

@@ -30,8 +30,9 @@ const empty = { metierAutre: '', metiers: [], methode: [], clients: [], equipe: 
 
 export default function Questionnaire() {
   const navigate = useNavigate()
-  const { saveEntreprise, notify } = useStore()
+  const { demarrerActivite, notify } = useStore()
   const [a, setA] = useState(empty)
+  const [envoi, setEnvoi] = useState(false)
   const [missing, setMissing] = useState([])
 
   const toggle = (k, v, multi) => {
@@ -41,8 +42,9 @@ export default function Questionnaire() {
   }
   const isOn = (k, v) => (Array.isArray(a[k]) ? a[k].includes(v) : a[k] === v)
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
+    if (envoi) return
     const miss = [...Q1, ...Q2].filter((q) => {
       const v = a[q.k]
       return Array.isArray(v) ? v.length === 0 : v === undefined || String(v).trim() === ''
@@ -63,8 +65,17 @@ export default function Questionnaire() {
     // « Autre » est remplacé par le métier saisi : c'est lui qui est transmis à l'IA (devis, prix du marché).
     const { metierAutre, ...reste } = a
     const metiers = a.metiers.filter((m) => m !== 'Autre').concat(a.metiers.includes('Autre') ? [metierAutre.trim().slice(0, 60)] : [])
-    saveEntreprise({ ...reste, metiers, tauxHoraire: Number(a.tauxHoraire), deplacement: Number(a.deplacement) })
-    notify('C’est réglé ! Bienvenue sur EasyFact.')
+    // Métier « Autre » : l'IA propose les NOMS d'un catalogue de départ (sans prix). En cas d'échec, on continue sans.
+    let elementsIA = []
+    if (a.metiers.includes('Autre')) {
+      setEnvoi(true)
+      try {
+        const rep = await fetch('/api/marche', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ metier: metierAutre.trim(), action: 'catalogue' }) })
+        if (rep.ok) elementsIA = (await rep.json()).elements || []
+      } catch { /* hors ligne : catalogue sans propositions */ }
+    }
+    demarrerActivite({ ...reste, metiers, tauxHoraire: Number(a.tauxHoraire), deplacement: Number(a.deplacement) }, elementsIA)
+    notify(elementsIA.length ? 'C’est réglé ! L’IA a préparé votre catalogue : ajoutez vos prix.' : 'C’est réglé ! Bienvenue sur EasyFact.')
     navigate('/app')
   }
 
@@ -155,7 +166,7 @@ export default function Questionnaire() {
           </fieldset>
         </section>
 
-        <button type="submit" className="btn btn-dark btn-block" style={{ minHeight: 56 }}>Terminer et accéder à mon accueil</button>
+        <button type="submit" className="btn btn-dark btn-block" style={{ minHeight: 56 }} disabled={envoi}>{envoi ? 'L’IA prépare votre catalogue…' : 'Terminer et accéder à mon accueil'}</button>
       </form>
     </FlowLayout>
   )

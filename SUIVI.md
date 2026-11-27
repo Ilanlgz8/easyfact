@@ -25,6 +25,8 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | Versions et copie figée | TESTÉ | entreprise et client copiés à la validation ; anciens devis d’exemple sans copie |
 | Prix du marché pendant le devis | TESTÉ (navigateur + 11 tests, 27/11/2026) | index INSEE BT (service SDMX public) via /api/marche, interrupteur MARCHE_ACTIF ; plombier BT38 : +8,5 % sept. 2025 → sept. 2026, mitigeur 80 € → 86,81 € suggéré, « Appliquer » OK ; suggestion seulement sur une ligne du catalogue à son prix et dont la date du prix est connue |
 | Métiers (liste complète + « Autre » libre) | TESTÉ (navigateur) | métier transmis à l’IA du devis (prompt v2.3) ; métier « Autre » rattaché à un index par l’IA (Ébéniste → BT18a, appel réel OK) |
+| Espace adapté au métier (catalogue + exemples) | TESTÉ (navigateur, 27/11/2026) | après le questionnaire : catalogue du métier (prestations + matériaux, prix d’exemple « à vérifier ») et 3 devis + 2 factures d’exemple du métier ; menuisier et « Autre » (Plaquiste) joués de bout en bout |
+| Prix des matériaux | TESTÉ | indices INSEE de prix de production (chêne, panneaux, carrelage, tuiles, câbles, cuivre, ciment…) ; parquet chêne : « stable +1,7 % » ; pose : +4,2 % suggéré |
 | Dictée vocale | TESTÉ (voix réelle dans Edge par l’équipe, 27/11/2026) | enregistrement dans le navigateur (Edge, Brave, Chrome) + transcription Whisper OVH via /api/transcrire ; 7 tests ; appel réel OK (silence filtré) ; interrupteurs VITE_DICTEE_ACTIVE + IA_ACTIVE |
 
 ## Lots
@@ -38,6 +40,7 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | 6 | Corrections d'expérience | TESTÉ (focus questionnaire vérifié ; confirmation d'annulation non jouée en automatique) : focus 1re erreur du questionnaire, catalogue en saisie manuelle (lot 4), confirmation d'annulation, textes accueil et questionnaire, liens morts remplacés |
 | 7 | Aide, guides, scénario de démo | TESTÉ : page /aide (8 sections), GUIDE-ARTISAN.md, EXPLOITATION.md, DEMO.md (5 min + secours + script vidéo) |
 | 9 | Prix du marché (INSEE) + métiers | TESTÉ : 100 tests ; 20 cas réels avec le prompt v2.3 : 20/20, 17/17 lignes exactes (un seul passage) ; parcours devis vérifié dans le navigateur |
+| 10 | Espace par métier, matériaux au prix du marché | TESTÉ : 108 tests ; 20 cas réels prompt v2.4 : 20/20, 17/17 ; navigateur : inscription menuisier (accueil, catalogue, devis parquet pose + matériau) et plaquiste (catalogue IA sans prix) |
 | 8 | Chatbot simulé | TESTÉ : 16 tests (homonymes, dates Paris, info absente, source, ancien prix, hors périmètre, injection stockée, écriture refusée, conversations) ; navigateur : sources réelles, HTML échappé, mémoire après rechargement, plein écran à 390 px |
 
 ## Décisions
@@ -57,6 +60,11 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | 27/11/2026 | Prix du marché = index officiels INSEE « Index du bâtiment » (BT), pas l’IA, avec accord | un modèle ne connaît pas les prix du mois ; l’index mesure une évolution, le code l’applique au prix de l’artisan (centimes) |
 | 27/11/2026 | Le prix du marché est proposé pendant le devis, l’artisan valide (« Appliquer ») | réponse de l’équipe |
 | 27/11/2026 | L’IA ne choisit qu’un index dans une liste fermée pour un métier « Autre » ; jamais un chiffre | règle « montants calculés par le code » |
+| 27/11/2026 | Catalogue prérempli pour les 8 métiers, IA pour « Autre » (noms seulement) | réponse de l’équipe ; l’IA ne fixe aucun prix |
+| 27/11/2026 | Prix de départ = exemples « à vérifier », datés d’oct. 2025 | réponse de l’équipe ; ce ne sont pas des prix de référence |
+| 27/11/2026 | Matériaux : indice INSEE propre à chaque matériau, suggestion validée par l’artisan | réponse de l’équipe |
+| 27/11/2026 | Exemples de devis et factures selon le métier ; aucun pour « Autre » | réponse de l’équipe ; pas de montants inventés par l’IA |
+| 27/11/2026 | Prompt d’extraction v2.4 : pose + matériau = deux lignes | catalogue avec matériaux ; 20 cas sans régression |
 | 27/11/2026 | Budget de test IA : 5 € au total malgré 200 € de crédits OVH | règle du prompt ; dépensé avant ce jour : ≈ 0 € |
 
 ## Questions ouvertes
@@ -71,7 +79,10 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 - Factures : la TVA y est encore préremplie (20 % pro, 10 % particulier) ; écrans de factures non modifiés.
 - Mot de passe oublié, comptes, isolation, sauvegarde/restauration, journal des actions, test de charge : impossibles sans serveur.
 - Import CSV et export des données : non faits (hors choix « aide courte »).
-- Prix du marché : un seul index par entreprise (celui du métier) pour toutes les prestations ; pas d’index par prestation. Index publiés avec ≈ 2 mois de retard.
+- Prix du marché : index du bâtiment (≈ 2 mois de retard) et prix de production des matériaux (≈ 1 mois) ; prix de production = sortie d’usine, pas le prix du négoce payé par l’artisan.
+- Prix d’exemple des catalogues : inventés pour la démo, à remplacer par l’artisan ; à faire valider par un professionnel de chaque métier.
+- Changer de métier après l’installation ne régénère pas le catalogue (rien n’est écrasé) : « Réinitialiser la démo » le fait.
+- 20 cas d’extraction : plomberie seulement ; pas de jeu de cas pour les autres métiers.
 - Prix des prestations créées avant la date des prix (`prixDepuis`) : pas de suggestion tant que le prix n’est pas réenregistré.
 - Dépendances : `npm audit` signale vite (élevée, serveur de dev) et react-router (modérée).
 
@@ -82,4 +93,5 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | 27/11/2026 | 3 passages des 20 cas (≈ 55 appels) + 1 essai navigateur | ≈ 0,004 € estimé (0,09 / 0,28 € par M tokens) |
 | 27/11/2026 | 2 transcriptions Whisper de test (1 s chacune) | négligeable (prix exact non trouvé, facturé à la seconde) |
 | 27/11/2026 | 1 passage des 20 cas (prompt v2.3) + 1 devis navigateur + 1 classement de métier | ≈ 0,0015 € |
-| **Total** | | **≈ 0,007 € sur 5 €** |
+| 27/11/2026 | 1 passage des 20 cas (v2.4) + 4 devis navigateur + 4 catalogues IA | ≈ 0,002 € |
+| **Total** | | **≈ 0,009 € sur 5 €** |
