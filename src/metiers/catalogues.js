@@ -7,6 +7,7 @@
 // Chaque élément : { nom, detail, prix, type: 'prestation' | 'materiau', indice } ;
 // `indice` = code de src/marche/indices.js (BT pour la main-d'œuvre, IPPI pour les matériaux).
 import { indiceDuMetier, moisParis } from '../marche/indices.js'
+import { dateDemo } from '../dates.js'
 
 export const DATE_EXEMPLES = '2025-10'
 
@@ -153,24 +154,39 @@ export function catalogueEntreprise(entreprise, elementsIA = [], mois = moisPari
   return liste.map((p, i) => ({ id: 'p' + (i + 1), ...p }))
 }
 
-// Devis et factures d'exemple du premier métier de la liste (aucun pour un métier « Autre »).
-export function exemplesEntreprise(entreprise, catalogue) {
+// Métier « Autre » : exemples fictifs dont l'objet reprend les prestations proposées par l'IA,
+// chiffrés UNIQUEMENT avec la main-d'œuvre et le déplacement donnés au questionnaire (aucun prix inventé).
+function exemplesAutre(catalogue) {
+  const noms = catalogue.filter((p) => p.proposeParIA && p.type === 'prestation').map((p) => p.nom)
+  const objet = (i, defaut) => (noms[i] ? `${noms[i]} (exemple)` : defaut)
+  return [
+    [objet(0, 'Chantier d’exemple n° 1'), [['Main-d’œuvre', 6], ['Déplacement', 1]]],
+    [objet(1, 'Chantier d’exemple n° 2'), [['Main-d’œuvre', 10], ['Déplacement', 2]]],
+    [objet(2, 'Chantier d’exemple n° 3'), [['Main-d’œuvre', 3], ['Déplacement', 1]]],
+  ]
+}
+
+// Devis et factures d'exemple du premier métier de la liste, datés par rapport au jour `ref`
+// (ce mois-ci, le mois dernier, il y a deux mois) pour que l'accueil et l'assistant aient de quoi répondre.
+export function exemplesEntreprise(entreprise, catalogue, ref = new Date()) {
   const m = (entreprise.metiers || []).map(cleMetier).find((x) => EXEMPLES[x])
-  if (!m) return { devis: [], factures: [] }
+  const modeles = m ? EXEMPLES[m] : exemplesAutre(catalogue)
   const ligne = ([nom, qte]) => {
     const p = catalogue.find((x) => x.nom === nom)
     return { label: nom, qte, prix: p && p.prix !== null ? p.prix : 0 }
   }
+  const D = (spec) => dateDemo(ref, spec)
   const tvaPart = 10 // exemples : travaux chez des particuliers, logement de plus de 2 ans
-  const [a, b, c] = EXEMPLES[m]
+  const [a, b, c] = modeles
   const devis = [
-    { id: 'd3', numero: '003', clientId: 'c5', date: '2026-11-25', statut: 'pret', tva: tvaPart, objet: a[0], lignes: a[1].map(ligne) },
-    { id: 'd2', numero: '002', clientId: 'c3', date: '2026-11-18', statut: 'attente', tva: 20, objet: b[0], lignes: b[1].map(ligne) },
-    { id: 'd1', numero: '001', clientId: 'c1', date: '2026-11-10', statut: 'signe', tva: tvaPart, objet: c[0], lignes: c[1].map(ligne) },
+    { id: 'd4', numero: '004', clientId: 'c5', date: D({ jours: 1 }), statut: 'pret', tva: tvaPart, objet: a[0], lignes: a[1].map(ligne) },
+    { id: 'd3', numero: '003', clientId: 'c3', date: D({ mois: 1, jour: 18 }), statut: 'attente', tva: 20, objet: b[0], lignes: b[1].map(ligne) },
+    { id: 'd2', numero: '002', clientId: 'c6', date: D({ mois: 1, jour: 9 }), statut: 'attente', tva: 20, objet: a[0], lignes: a[1].map(ligne) },
+    { id: 'd1', numero: '001', clientId: 'c1', date: D({ mois: 2, jour: 14 }), statut: 'signe', tva: tvaPart, objet: c[0], lignes: c[1].map(ligne) },
   ]
   const factures = [
-    { id: 'f2', numero: '002', clientId: 'c2', date: '2026-11-12', statut: 'attente', tva: tvaPart, objet: b[0], lignes: b[1].map(ligne) },
-    { id: 'f1', numero: '001', clientId: 'c4', date: '2026-10-28', statut: 'payee', tva: tvaPart, objet: c[0], lignes: c[1].map(ligne) },
+    { id: 'f2', numero: '002', clientId: 'c2', date: D({ mois: 1, jour: 25 }), statut: 'attente', tva: tvaPart, objet: b[0], lignes: b[1].map(ligne) },
+    { id: 'f1', numero: '001', clientId: 'c4', date: D({ mois: 2, jour: 28 }), statut: 'payee', tva: tvaPart, objet: c[0], lignes: c[1].map(ligne) },
   ]
   return { devis, factures }
 }

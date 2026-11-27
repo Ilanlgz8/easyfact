@@ -269,7 +269,7 @@ a.row-main:hover strong { text-decoration: underline; }
 .assistant-exemples .btn { text-align: left; justify-content: flex-start; }
 .assistant-msg { padding: 10px 12px; border-radius: 12px; max-width: 92%; }
 .assistant-msg.artisan { align-self: flex-end; background: var(--beige); }
-.assistant-msg.assistant { align-self: flex-start; border: 1px solid var(--line); }
+.assistant-msg.reponse { align-self: flex-start; border: 1px solid var(--line); }
 .assistant-saisie { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--line); }
 .assistant-saisie .input { flex: 1 1 200px; }
 .assistant-saisie .error, .assistant-saisie .small { flex-basis: 100%; }

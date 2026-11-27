@@ -41,6 +41,7 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | 7 | Aide, guides, scénario de démo | TESTÉ : page /aide (8 sections), GUIDE-ARTISAN.md, EXPLOITATION.md, DEMO.md (5 min + secours + script vidéo) |
 | 9 | Prix du marché (INSEE) + métiers | TESTÉ : 100 tests ; 20 cas réels avec le prompt v2.3 : 20/20, 17/17 lignes exactes (un seul passage) ; parcours devis vérifié dans le navigateur |
 | 10 | Espace par métier, matériaux au prix du marché | TESTÉ : 108 tests ; 20 cas réels prompt v2.4 : 20/20, 17/17 ; navigateur : inscription menuisier (accueil, catalogue, devis parquet pose + matériau) et plaquiste (catalogue IA sans prix) |
+| 11 | Exemples datés par rapport au jour, assistant | TESTÉ : 109 tests ; navigateur : « le mois dernier » → 3 devis d’octobre avec sources ; réponse de l’assistant affichée dans le fil (bug CSS corrigé) |
 | 8 | Chatbot simulé | TESTÉ : 16 tests (homonymes, dates Paris, info absente, source, ancien prix, hors périmètre, injection stockée, écriture refusée, conversations) ; navigateur : sources réelles, HTML échappé, mémoire après rechargement, plein écran à 390 px |
 
 ## Décisions
@@ -65,6 +66,8 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 | 27/11/2026 | Matériaux : indice INSEE propre à chaque matériau, suggestion validée par l’artisan | réponse de l’équipe |
 | 27/11/2026 | Exemples de devis et factures selon le métier ; aucun pour « Autre » | réponse de l’équipe ; pas de montants inventés par l’IA |
 | 27/11/2026 | Prompt d’extraction v2.4 : pose + matériau = deux lignes | catalogue avec matériaux ; 20 cas sans régression |
+| 27/11/2026 | Données d’exemple datées par rapport au jour de la démo (ce mois-ci, le mois dernier, il y a deux mois) | l’assistant ne trouvait rien pour « le mois dernier » : tout était daté de novembre |
+| 27/11/2026 | Métier « Autre » : exemples chiffrés seulement avec la main-d’œuvre et le déplacement du questionnaire | réponse de l’équipe (« réponses fictives ») ; aucun prix inventé |
 | 27/11/2026 | Budget de test IA : 5 € au total malgré 200 € de crédits OVH | règle du prompt ; dépensé avant ce jour : ≈ 0 € |
 
 ## Questions ouvertes
@@ -81,6 +84,7 @@ Tous les lots du plan sont faits. Décision attendue : relecture, push de la bra
 - Import CSV et export des données : non faits (hors choix « aide courte »).
 - Prix du marché : index du bâtiment (≈ 2 mois de retard) et prix de production des matériaux (≈ 1 mois) ; prix de production = sortie d’usine, pas le prix du négoce payé par l’artisan.
 - Prix d’exemple des catalogues : inventés pour la démo, à remplacer par l’artisan ; à faire valider par un professionnel de chaque métier.
+- Les navigateurs déjà utilisés gardent les anciennes dates : « Réinitialiser la démo » pour les mettre à jour.
 - Changer de métier après l’installation ne régénère pas le catalogue (rien n’est écrasé) : « Réinitialiser la démo » le fait.
 - 20 cas d’extraction : plomberie seulement ; pas de jeu de cas pour les autres métiers.
 - Prix des prestations créées avant la date des prix (`prixDepuis`) : pas de suggestion tant que le prix n’est pas réenregistré.

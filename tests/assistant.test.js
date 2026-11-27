@@ -2,13 +2,17 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { repondre, periodeRelative, aujourdhuiParis } from '../src/assistant/simule.js'
-import { seed } from '../src/data.js'
+import { creerSeed } from '../src/data.js'
+
+// Données d'exemple datées par rapport au 15/12/2026 : d25, d24, d23 en décembre ; d22, d21, d20 en novembre.
+const MAINTENANT = new Date('2026-12-15T10:00:00Z')
+const seed = creerSeed(MAINTENANT)
 
 const aide = [
   { id: 'pdf', titre: 'Obtenir le PDF', texte: ['Ouvrez le devis validé, puis « Télécharger en PDF ».'] },
   { id: 'modifier', titre: 'Modifier un devis validé', texte: ['Cliquez sur « Nouvelle version ».'] },
 ]
-const ctx = { devis: seed.devis, clients: seed.clients, prestations: seed.prestations, aide, maintenant: new Date('2026-12-03T10:00:00Z') }
+const ctx = { devis: seed.devis, clients: seed.clients, prestations: seed.prestations, aide, maintenant: MAINTENANT }
 
 test('dernier devis d\'un client : bon devis, source réelle', () => {
   const r = repondre('Retrouve le dernier devis de M. Martin', ctx)
@@ -26,7 +30,8 @@ test('homonymes : demande lequel', () => {
 })
 test('mois dernier (Europe/Paris) : devis de novembre 2026 seulement', () => {
   const r = repondre('Qu’avais-je proposé le mois dernier ?', ctx)
-  assert.match(r.texte, /^6 devis/)
+  assert.match(r.texte, /^3 devis/)
+  assert.deepEqual(r.sources.map((s) => s.id), ['d22', 'd21', 'd20'])
   assert.ok(r.sources.every((s) => /novembre 2026/.test(s.libelle)))
 })
 test('dates relatives calculées à Paris : 31/12 23h30 UTC = 1er janvier à Paris', () => {

@@ -119,7 +119,7 @@ export default function Assistant() {
       {conv && (
         <div className="assistant-fil" aria-live="polite">
           {conv.messages.map((m, i) => (
-            <div key={i} className={'assistant-msg ' + m.role}>
+            <div key={i} className={'assistant-msg ' + (m.role === 'assistant' ? 'reponse' : m.role)}>
               <span className="sr-only">{m.role === 'artisan' ? 'Vous : ' : 'Assistant : '}</span>
               {/* Texte brut : React échappe tout, aucun HTML ni lien externe. */}
               <p style={{ whiteSpace: 'pre-line' }}>{m.texte}</p>

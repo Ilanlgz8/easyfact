@@ -4,6 +4,9 @@ import assert from 'node:assert/strict'
 import { CATALOGUES, catalogueEntreprise, exemplesEntreprise, DATE_EXEMPLES } from '../src/metiers/catalogues.js'
 import { SERIES, METIERS, validerCatalogue, consigneCatalogue, suggererPrix } from '../src/marche/indices.js'
 import { calculerTotaux } from '../src/devis/calcul.js'
+import { dateDemo } from '../src/dates.js'
+
+const REF = new Date('2026-11-27T10:00:00Z')
 
 const ent = (metiers) => ({ metiers, tauxHoraire: 50, deplacement: 25 })
 
@@ -50,15 +53,24 @@ test('métier « Autre » : éléments de l\'IA ajoutés SANS prix', () => {
   const p = c.find((x) => x.nom === 'Pose de plaques de plâtre')
   assert.equal(p.prix, null)
   assert.equal(p.proposeParIA, true)
-  assert.deepEqual(exemplesEntreprise(ent(['Plaquiste']), c), { devis: [], factures: [] })
+  // Exemples : objet repris de l'IA, chiffrés seulement avec main-d'œuvre et déplacement du questionnaire.
+  const { devis, factures } = exemplesEntreprise(ent(['Plaquiste']), c, REF)
+  assert.equal(devis.length, 4)
+  assert.equal(factures.length, 2)
+  assert.equal(devis[0].objet, 'Pose de plaques de plâtre (exemple)')
+  for (const d of [...devis, ...factures]) {
+    for (const l of d.lignes) assert.ok(['Main-d’œuvre', 'Déplacement'].includes(l.label) && [50, 25].includes(l.prix), l.label)
+  }
 })
 
 test('exemples du métier : lignes du catalogue, totaux calculables', () => {
   for (const m of METIERS) {
     const e = ent([m])
     const c = catalogueEntreprise(e, [], '2026-11')
-    const { devis, factures } = exemplesEntreprise(e, c)
-    assert.equal(devis.length, 3, m)
+    const { devis, factures } = exemplesEntreprise(e, c, REF)
+    assert.equal(devis.length, 4, m)
+    // ce mois-ci, le mois dernier et avant : l'assistant a toujours de quoi répondre
+    assert.ok(devis.some((d) => d.date.startsWith('2026-11')) && devis.some((d) => d.date.startsWith('2026-10')), m)
     assert.equal(factures.length, 2, m)
     for (const d of [...devis, ...factures]) {
       for (const l of d.lignes) assert.ok(c.some((p) => p.nom === l.label) && l.prix > 0, `${m} : ${l.label}`)
@@ -85,4 +97,12 @@ test('catalogue de l\'IA : validation stricte, aucun prix accepté', () => {
   assert.equal(validerCatalogue(JSON.stringify({ elements: Array(41).fill(ok.elements[0]) })), null)
   assert.equal(validerCatalogue('pas du json'), null)
   assert.equal(/prix|€/.test(consigneCatalogue().replace('N\'indique jamais de prix', '')), false)
+})
+
+test('dates de démo : relatives au jour, à Paris, mois raccourcis', () => {
+  assert.equal(dateDemo(REF, { jours: 1 }), '2026-11-26')
+  assert.equal(dateDemo(REF, { mois: 1, jour: 18 }), '2026-10-18')
+  assert.equal(dateDemo(new Date('2027-01-02T10:00:00Z'), { mois: 1, jour: 9 }), '2026-12-09')
+  assert.equal(dateDemo(new Date('2026-03-31T10:00:00Z'), { mois: 1, jour: 30 }), '2026-02-28')
+  assert.equal(dateDemo(new Date('2026-12-31T23:30:00Z'), { jours: 0 }), '2027-01-01') // déjà le 1er janvier à Paris
 })
