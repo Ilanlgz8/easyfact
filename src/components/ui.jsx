@@ -37,6 +37,7 @@ export function AppLayout() {
     ['/app/devis', 'Devis'],
     ['/app/factures', 'Factures'],
     ['/app/entreprise', 'Mon entreprise'],
+    ['/aide', 'Aide'],
   ]
   return (
     <div className="app">

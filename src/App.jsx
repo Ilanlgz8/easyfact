@@ -13,12 +13,14 @@ import NouvelleFacture from './pages/NouvelleFacture.jsx'
 import Entreprise from './pages/Entreprise.jsx'
 import DocView from './pages/DocView.jsx'
 import Demo from './pages/Demo.jsx'
+import Aide from './pages/Aide.jsx'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/demo" element={<Demo />} />
+      <Route path="/aide" element={<Aide />} />
       <Route path="/connexion" element={<Auth mode="login" />} />
       <Route path="/inscription" element={<Auth mode="register" />} />
       <Route path="/questionnaire" element={<RequireUser><Questionnaire /></RequireUser>} />
