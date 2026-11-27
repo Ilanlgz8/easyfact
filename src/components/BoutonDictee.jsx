@@ -18,17 +18,28 @@ export default function BoutonDictee({ valeur, onChange }) {
     setErreur('')
     const r = new Reconnaissance()
     r.lang = 'fr-FR'
-    // Edge ne renvoie souvent aucun résultat en mode continu : on y fait une phrase à la fois.
-    r.continuous = !/Edg\//.test(navigator.userAgent)
+    // Une phrase à la fois : plus fiable que le mode continu (qui reste parfois muet).
+    r.continuous = false
     r.interimResults = true
     const base = valeur.trim()
     let recu = false
     let enErreur = false
+    let delai = null
     setPhase('Connexion au micro…')
     r.onaudiostart = () => setPhase('Micro actif : parlez.')
-    r.onspeechstart = () => setPhase('Voix détectée…')
+    r.onspeechstart = () => {
+      setPhase('Voix détectée…')
+      // Voix entendue mais aucun texte du service Google au bout de 10 s : on abandonne avec un message clair.
+      delai = setTimeout(() => {
+        if (recu) return
+        enErreur = true
+        setErreur('Le service de dictée de Google ne répond pas (VPN, antivirus ou pare-feu ?). Utilisez Windows + H dans le champ.')
+        r.abort()
+      }, 10000)
+    }
     r.onresult = (e) => {
       recu = true
+      clearTimeout(delai)
       setPhase('')
       const dit = [...e.results].map((res) => res[0].transcript).join(' ').trim()
       onChange(base && dit ? base + ' ' + dit : base || dit)
@@ -42,6 +53,7 @@ export default function BoutonDictee({ valeur, onChange }) {
       else if (e.error !== 'aborted') setErreur(`La dictée a échoué (${e.error}). Réessayez ou tapez le texte.`)
     }
     r.onend = () => {
+      clearTimeout(delai)
       setActif(false)
       setPhase('')
       if (!recu && !enErreur) setErreur('Aucun texte reconnu. Vérifiez le micro choisi par le navigateur (icône 🎤 dans la barre d’adresse), ou utilisez Windows + H.')
